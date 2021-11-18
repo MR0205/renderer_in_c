@@ -8,7 +8,6 @@
 #include <winuser.h>
 #include <wingdi.h>
 
-
 #define int8 char
 #define int16 short
 #define int32 int
@@ -19,35 +18,28 @@
 #define uint32 unsigned int
 #define uint64 unsigned long long
 
+#define real32 float
+#define real64 double
+
 #define bool32 int
 
 #define ASSERT(expression) (if(!expression) {*((int *)(0))=0;})
 
+#include "engine.cpp"
+
 BOOL g_Running;
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg,
-                            WPARAM wParam, LPARAM lParam);
-
-int mouse_x;
-int mouse_y;
-
-
-void get_client_dimensions(HWND hwnd, unsigned int * width, unsigned int * height)
+static void 
+Win32GetClientDimensions(HWND hwnd, DWORD * width, DWORD * height)
 {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
-    *width = client_rect.right - client_rect.left;
-    *height = client_rect.bottom - client_rect.top;
+    *width  = (DWORD)(client_rect.right - client_rect.left);
+    *height = (DWORD)(client_rect.bottom - client_rect.top);
 }
 
-struct global_state
-{
-    uint32 offset_x;
-    uint32 offset_y;
-
-} global_state;
-
-void HandleKeyboard(MSG * msg)
+static void 
+Win32HandleKeyboard(MSG * msg)
 {
     uint32 delta = 5;
     bool32 down = true;
@@ -67,25 +59,25 @@ void HandleKeyboard(MSG * msg)
         {
             case 0x57: // 'w'
             {
-                global_state.offset_y += delta;
+                g_GlobalState.offset_y += delta;
                 OutputDebugStringA("w: down\n");
             } break;
 
             case 0x41: // 'a'
             {
-                global_state.offset_x -= delta;
+                g_GlobalState.offset_x -= delta;
                 OutputDebugStringA("a: down\n");
             } break;
 
             case 0x53: // 's'
             {
-                global_state.offset_y -= delta;
+                g_GlobalState.offset_y -= delta;
                 OutputDebugStringA("s: down\n");
             } break;
 
             case 0x44: // 'd'
             {
-                global_state.offset_x += delta;
+                g_GlobalState.offset_x += delta;
                 OutputDebugStringA("d: down\n");
             } break;
 
@@ -104,6 +96,44 @@ void HandleKeyboard(MSG * msg)
     }
 }
 
+static LRESULT CALLBACK 
+Win32WindowProc(HWND hwnd, UINT uMsg,
+                WPARAM wParam, LPARAM lParam)
+{
+    switch(uMsg)
+    {
+        case WM_CLOSE:
+        {
+            DestroyWindow(hwnd);
+        } break;
+
+        case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+        } break;
+
+        default:
+        {
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
+        } break;
+    }
+    return 0;
+}
+
+void output_int_to_debug(char * format_string, int32 value)
+{
+    char temp[256];
+    sprintf_s(temp, 256, format_string, value);
+    OutputDebugStringA(temp);
+}
+
+void output_real64_to_debug(char * format_string, real64 value)
+{
+    char temp[256];
+    sprintf_s(temp, 256, format_string, value);
+    OutputDebugStringA(temp);
+}
+
 INT WINAPI wWinMain(HINSTANCE hInstance, 
                    HINSTANCE hPrevInstance,
                    PWSTR lpCmdLine,
@@ -116,7 +146,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
 
     WNDCLASS wc = {};
 
-    wc.lpfnWndProc = WindowProc;
+    wc.lpfnWndProc = Win32WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
     wc.style = CS_OWNDC;
@@ -138,15 +168,17 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     MSG msg;
     BOOL message_read;
     g_Running = 1;
+    uint32 target_fps = 60;
+    real32 target_ms_per_frame = 1000.0f / (real32) target_fps;
 
     HDC display_dc = GetDC(hwnd);
     HDC memory_dc = CreateCompatibleDC(display_dc);
 
-    unsigned int window_width;
-    unsigned int window_height;
-    get_client_dimensions(hwnd, &window_width, &window_height);
-
-    HBITMAP memory_bitmap = CreateCompatibleBitmap(display_dc, window_width, window_height);
+    DWORD client_area_width;
+    DWORD client_area_height;
+    Win32GetClientDimensions(hwnd, &client_area_width, &client_area_height);
+/*
+    HBITMAP memory_bitmap = CreateCompatibleBitmap(display_dc, client_area_width, client_area_height);
     BITMAP memory_bitmap_struct;
     GetObject(memory_bitmap, sizeof(BITMAP), &memory_bitmap_struct);
     //HGDIOBJ old_bitmap = SelectObject(memory_dc, memory_bitmap);
@@ -154,12 +186,12 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     Rectangle(memory_dc, 0, 0, 111, 222);
     GetObject(memory_bitmap, sizeof(BITMAP), &memory_bitmap_struct);
     GetObject(memory_dc, sizeof(BITMAP), &memory_bitmap_struct);
-
+*/
 
     BITMAPINFOHEADER bmiHeader = {};
     bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmiHeader.biWidth = window_width;
-    bmiHeader.biHeight = -window_height;
+    bmiHeader.biWidth = client_area_width;
+    bmiHeader.biHeight = -client_area_height;
     bmiHeader.biPlanes = 1;
     bmiHeader.biBitCount = 32;
     bmiHeader.biCompression = BI_RGB;
@@ -176,16 +208,26 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
         OutputDebugStringA("Can't allocate DIBSection.\n");
         return 1;
     }
+    BitmapOutputBuffer bitmap_output_buffer;
+    bitmap_output_buffer.width = client_area_width;
+    bitmap_output_buffer.height = client_area_height;
+    bitmap_output_buffer.bits = (uint32 *) bits;
 
-
-
-
-    POINT mouse_pointer_point;
+    TIMECAPS tc_info;
+    timeGetDevCaps(&tc_info, sizeof(tc_info));
+    UINT minimum_timer_period_ms = tc_info.wPeriodMin;
+    if(timeBeginPeriod(minimum_timer_period_ms) == TIMERR_NOCANDO) {
+        // todo: Log error
+        return -1;
+    }
 
     LARGE_INTEGER prev_pc_val;
     LARGE_INTEGER cur_pc_val;
-    LONGLONG pc_diff;
-    LONGLONG time_diff;
+    LONGLONG ticks_elapsed_cur_frame;
+    LONGLONG target_ticks_elapsed_one_frame = pc_freq.QuadPart / target_fps;
+    real64 elapsed_cur_frame_ms;
+    real64 time_to_sleep_ms;
+    int32 truncated_time_to_sleep_ms;
     QueryPerformanceCounter(&prev_pc_val);
 
     PAINTSTRUCT my_ps;
@@ -196,7 +238,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
         {
 
             if (msg.message == WM_KEYUP || msg.message == WM_KEYDOWN) {
-                HandleKeyboard(&msg);
+                Win32HandleKeyboard(&msg);
             }
             if (msg.message == WM_QUIT) {
                 g_Running = 0;
@@ -206,56 +248,39 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
             DispatchMessage(&msg);
         } 
 
-
-        //GetCursorPos(&mouse_pointer_point); 
-        int val1 = mouse_x % 256;//(mouse_pointer_point.x % 256);
-        int val2 = mouse_y % 256;//(mouse_pointer_point.y % 256);
-
-/*
-        HBRUSH my_solid_brush2 = CreateSolidBrush(RGB(val1, val2, 128));
-        HGDIOBJ old_brush = SelectObject(cur_hdc, my_solid_brush2);
-        int x_left_top = mouse_x - 10;
-        int y_left_top = mouse_y - 10;
-        //char temp[256];
-        //sprintf(temp, "(%d, %d)\n", mouse_x, mouse_y);
-        //OutputDebugStringA(temp);
-
-        //PatBlt(cur_hdc, x_left_top, y_left_top, 20, 20, PATCOPY);
-
-        //PatBlt(cur_hdc, 0, 0, x_left_top, y_left_top, BLACKNESS);
-        //Rectangle(cur_hdc, 0, 0, x_left_top, y_left_top);
-
-        SelectObject(cur_hdc, old_brush);
-        DeleteObject(my_solid_brush2);
-*/
-
-        DWORD color = 0;
-        DWORD * cur_pixel = (DWORD *) bits;
-        for (int index_row = 0; index_row < window_height; ++index_row)
-        {
-            for (int index_column = 0; index_column < window_width; ++index_column)
-            {
-                uint8 r = global_state.offset_y + index_row % 256;
-                uint8 g = global_state.offset_x + index_column % 256;
-                uint8 b = 0;
-                color = ((((DWORD)r) << 16) | (((BYTE)g)<< 8) | b);
-                *(cur_pixel++) = color;
-            }
-
-        }
-        HGDIOBJ old_bitmap = SelectObject(memory_dc, DIBSection);
-        BitBlt(display_dc, 0, 0, window_width, window_height, memory_dc, 0, 0, SRCCOPY);
-        SelectObject(memory_dc, old_bitmap);
+        UpdateStateAndRender(&bitmap_output_buffer);
 
         QueryPerformanceCounter(&cur_pc_val);
-        pc_diff = cur_pc_val.QuadPart - prev_pc_val.QuadPart;
-        time_diff = pc_diff * 1'000'000;
-        time_diff /= pc_freq.QuadPart;
+        ticks_elapsed_cur_frame = cur_pc_val.QuadPart - prev_pc_val.QuadPart;
+        ticks_elapsed_cur_frame = ticks_elapsed_cur_frame * 1'000; // preparing to convert to ms
+        // now in ms with trancation of fractional part
+        elapsed_cur_frame_ms = (real64)ticks_elapsed_cur_frame / (real64)pc_freq.QuadPart; 
+        time_to_sleep_ms = target_ms_per_frame - elapsed_cur_frame_ms;
+        truncated_time_to_sleep_ms = (int32)time_to_sleep_ms - (int32)minimum_timer_period_ms;
+        if (truncated_time_to_sleep_ms > 0)
+        {
+            Sleep(truncated_time_to_sleep_ms);
+        }
 
-        char temp[256];
-        sprintf(temp, "%lld us\n", time_diff);
-        OutputDebugStringA(temp);
+        QueryPerformanceCounter(&cur_pc_val);
+        ticks_elapsed_cur_frame = cur_pc_val.QuadPart - prev_pc_val.QuadPart;
+
+        while (ticks_elapsed_cur_frame < target_ticks_elapsed_one_frame)
+        {
+            QueryPerformanceCounter(&cur_pc_val);
+            ticks_elapsed_cur_frame = cur_pc_val.QuadPart - prev_pc_val.QuadPart;
+        }
+
+        ticks_elapsed_cur_frame = ticks_elapsed_cur_frame * 1'000; 
+        elapsed_cur_frame_ms = (real64)ticks_elapsed_cur_frame / (real64)pc_freq.QuadPart; 
+        output_real64_to_debug("%f ms\n", elapsed_cur_frame_ms);
         prev_pc_val = cur_pc_val;
+
+
+        HGDIOBJ old_bitmap = SelectObject(memory_dc, DIBSection);
+        BitBlt(display_dc, 0, 0, client_area_width, client_area_height, memory_dc, 0, 0, SRCCOPY);
+        SelectObject(memory_dc, old_bitmap);
+
 
 
         //OutputDebugStringA("All messages extracted.\n");
@@ -265,58 +290,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
         }
         */
     }
-    ClipCursor(NULL);
+    timeEndPeriod(minimum_timer_period_ms);
     return 0;
 }
 
-void RestrictCursor(HWND hwnd)
-{
-    RECT client_rect;
-    GetClientRect(hwnd, &client_rect);
-    POINT left_top = {client_rect.left, client_rect.top};
-    POINT right_bottom = {client_rect.right, client_rect.bottom};
-    ClientToScreen(hwnd, &left_top);
-    ClientToScreen(hwnd, &right_bottom);
-    RECT screen_rect;
-    SetRect(&screen_rect, left_top.x, left_top.y, right_bottom.x, right_bottom.y);
-    ClipCursor(&screen_rect);
-}
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg,
-                            WPARAM wParam, LPARAM lParam)
-{
-    switch(uMsg)
-    {
-        case WM_CLOSE:
-        {
-            DestroyWindow(hwnd);
-        } break;
-
-        case WM_DESTROY:
-        {
-            PostQuitMessage(0);
-        } break;
-
-        case WM_MOUSEMOVE:
-        {
-            mouse_x = GET_X_LPARAM(lParam);
-            mouse_y = GET_Y_LPARAM(lParam);
-        } break;
-
-        case WM_SIZE:
-        {
-            //RestrictCursor(hwnd);
-        } break;
-
-        case WM_MOVE:
-        {
-            //RestrictCursor(hwnd);
-        } break;
-
-
-        default:
-        {
-            return DefWindowProc(hwnd, uMsg, wParam, lParam);
-        } break;
-    }
-    return 0;
-}
