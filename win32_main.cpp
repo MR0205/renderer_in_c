@@ -23,25 +23,26 @@
 
 #define bool32 int
 
+#define local_persist static
+#define internal static
 #define ASSERT(expression) (if(!expression) {*((int *)(0))=0;})
 
 #include "engine.cpp"
 
-BOOL g_Running;
 
-static void 
-Win32GetClientDimensions(HWND hwnd, DWORD * width, DWORD * height)
-{
-    RECT client_rect;
-    GetClientRect(hwnd, &client_rect);
-    *width  = (DWORD)(client_rect.right - client_rect.left);
-    *height = (DWORD)(client_rect.bottom - client_rect.top);
-}
+// internal void 
+// Win32GetClientDimensions(HWND hwnd, DWORD * width, DWORD * height)
+// {
+//     RECT client_rect;
+//     GetClientRect(hwnd, &client_rect);
+//     *width  = (DWORD)(client_rect.right - client_rect.left);
+//     *height = (DWORD)(client_rect.bottom - client_rect.top);
+// }
 
-static void 
-Win32HandleKeyboard(MSG * msg)
+internal void 
+Win32HandleKeyboard(MSG * msg, BitmapOutputBuffer * bitmap_output_buffer)
 {
-    uint32 delta = 5;
+    real32 delta = 0.5;
     bool32 down = true;
     if (msg->message == WM_KEYDOWN)
     {
@@ -59,26 +60,38 @@ Win32HandleKeyboard(MSG * msg)
         {
             case 0x57: // 'w'
             {
-                g_GlobalState.offset_y += delta;
+                g_GlobalState->camera_center_y -= delta;
                 OutputDebugStringA("w: down\n");
             } break;
 
             case 0x41: // 'a'
             {
-                g_GlobalState.offset_x -= delta;
+                g_GlobalState->camera_center_x -= delta;
                 OutputDebugStringA("a: down\n");
             } break;
 
             case 0x53: // 's'
             {
-                g_GlobalState.offset_y -= delta;
+                g_GlobalState->camera_center_y += delta;
                 OutputDebugStringA("s: down\n");
             } break;
 
             case 0x44: // 'd'
             {
-                g_GlobalState.offset_x += delta;
+                g_GlobalState->camera_center_x += delta;
                 OutputDebugStringA("d: down\n");
+            } break;
+
+            case VK_PRIOR: // PageUp
+            {
+                bitmap_output_buffer->px_in_m -= 1;
+                OutputDebugStringA("PageUp: down\n");
+            } break;
+
+            case VK_NEXT: // PageDown
+            {
+                bitmap_output_buffer->px_in_m += 1;
+                OutputDebugStringA("PageDown: down\n");
             } break;
 
             default:
@@ -96,7 +109,7 @@ Win32HandleKeyboard(MSG * msg)
     }
 }
 
-static LRESULT CALLBACK 
+internal LRESULT CALLBACK 
 Win32WindowProc(HWND hwnd, UINT uMsg,
                 WPARAM wParam, LPARAM lParam)
 {
@@ -120,14 +133,16 @@ Win32WindowProc(HWND hwnd, UINT uMsg,
     return 0;
 }
 
-void output_int_to_debug(char * format_string, int32 value)
+internal void
+output_int_to_debug(char * format_string, int32 value)
 {
     char temp[256];
     sprintf_s(temp, 256, format_string, value);
     OutputDebugStringA(temp);
 }
 
-void output_real64_to_debug(char * format_string, real64 value)
+internal void 
+output_real64_to_debug(char * format_string, real64 value)
 {
     char temp[256];
     sprintf_s(temp, 256, format_string, value);
@@ -154,7 +169,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
 
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(0, CLASS_NAME, L"this is title of the window",
+    HWND hwnd = CreateWindowEx(0, CLASS_NAME, L"My title",
                                WS_OVERLAPPEDWINDOW,
                                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                NULL, NULL, hInstance, NULL);
@@ -164,19 +179,39 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     }
     ShowWindow(hwnd, nCmdShow);
 
+    // TODO: step-into the code and look at the work of the functions/
+    // have not tested anything of this and surprised why the usage
+    // of tile map later on from the pointer when it gets evicted from the stack
+    // doesnt cause program to crash
+    
+    uint32 requested_game_memory_size = 200 * 1024 * 1024;
+    BYTE * virtual_alloc_rerurn = (BYTE *)VirtualAlloc(NULL, requested_game_memory_size,
+                                               MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+    if (virtual_alloc_rerurn) 
+    {
+        g_GameMemory.permanent_storage = virtual_alloc_rerurn;
+        g_GameMemory.permanent_storage_size = requested_game_memory_size;
+    } else
+    {
+        // log memory error
+        return -1;
+    }
+
+
 
     MSG msg;
     BOOL message_read;
-    g_Running = 1;
+    BOOL g_Running = 1; // moved out of global scope, as it is not used anywhere else except inside the WinMain
     uint32 target_fps = 60;
     real32 target_ms_per_frame = 1000.0f / (real32) target_fps;
 
     HDC display_dc = GetDC(hwnd);
     HDC memory_dc = CreateCompatibleDC(display_dc);
 
-    DWORD client_area_width;
-    DWORD client_area_height;
-    Win32GetClientDimensions(hwnd, &client_area_width, &client_area_height);
+    // DWORD client_area_width;
+    // DWORD client_area_height;
+    // Win32GetClientDimensions(hwnd, &client_area_width, &client_area_height);
+
 /*
     HBITMAP memory_bitmap = CreateCompatibleBitmap(display_dc, client_area_width, client_area_height);
     BITMAP memory_bitmap_struct;
@@ -188,10 +223,13 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     GetObject(memory_dc, sizeof(BITMAP), &memory_bitmap_struct);
 */
 
+    uint32 game_screen_width_px = 1920/2;
+    uint32 game_screen_height_px = 1080/2;
+
     BITMAPINFOHEADER bmiHeader = {};
     bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmiHeader.biWidth = client_area_width;
-    bmiHeader.biHeight = -client_area_height;
+    bmiHeader.biWidth = game_screen_width_px;//client_area_width;
+    bmiHeader.biHeight = -game_screen_height_px;// -client_area_height;
     bmiHeader.biPlanes = 1;
     bmiHeader.biBitCount = 32;
     bmiHeader.biCompression = BI_RGB;
@@ -206,11 +244,16 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     if (DIBSection == NULL )
     {
         OutputDebugStringA("Can't allocate DIBSection.\n");
-        return 1;
+        return -1;
     }
     BitmapOutputBuffer bitmap_output_buffer;
-    bitmap_output_buffer.width = client_area_width;
-    bitmap_output_buffer.height = client_area_height;
+    bitmap_output_buffer.width = game_screen_width_px;
+    bitmap_output_buffer.height = game_screen_height_px;
+    bitmap_output_buffer.px_in_m = 10.0f;
+    bitmap_output_buffer.center_of_bitmap_x_m = 
+        0.5 * (real32) bitmap_output_buffer.width / bitmap_output_buffer.px_in_m;
+    bitmap_output_buffer.center_of_bitmap_y_m = 
+        0.5 * (real32) bitmap_output_buffer.height / bitmap_output_buffer.px_in_m;
     bitmap_output_buffer.bits = (uint32 *) bits;
 
     TIMECAPS tc_info;
@@ -230,7 +273,6 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     int32 truncated_time_to_sleep_ms;
     QueryPerformanceCounter(&prev_pc_val);
 
-    PAINTSTRUCT my_ps;
     while (g_Running)
     {
         
@@ -238,7 +280,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
         {
 
             if (msg.message == WM_KEYUP || msg.message == WM_KEYDOWN) {
-                Win32HandleKeyboard(&msg);
+                Win32HandleKeyboard(&msg, &bitmap_output_buffer);
             }
             if (msg.message == WM_QUIT) {
                 g_Running = 0;
@@ -278,9 +320,13 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
 
 
         HGDIOBJ old_bitmap = SelectObject(memory_dc, DIBSection);
-        BitBlt(display_dc, 0, 0, client_area_width, client_area_height, memory_dc, 0, 0, SRCCOPY);
+        uint32 padding_x = 20;
+        uint32 padding_y = 20;
+        BitBlt(display_dc, padding_x, padding_y, bitmap_output_buffer.width,
+               bitmap_output_buffer.height, memory_dc, 0, 0, SRCCOPY);
+        BitBlt(memory_dc, 0, 0, bitmap_output_buffer.width,
+               bitmap_output_buffer.height, NULL, 0, 0, BLACKNESS);
         SelectObject(memory_dc, old_bitmap);
-
 
 
         //OutputDebugStringA("All messages extracted.\n");
