@@ -40,64 +40,80 @@
 // }
 
 internal void 
-Win32HandleKeyboard(MSG * msg, BitmapOutputBuffer * bitmap_output_buffer)
+Win32HandleKeyboard(MSG * msg, ControlInput * control_input)
 {
-    real32 delta = 0.5;
     bool32 down = true;
-    if (msg->message == WM_KEYDOWN)
-    {
-        down = true;
-    }
-    else
-    {
-        //assert(msg->message == WM_KEYUP);
-        down = false;
-    }
+
+//    if (msg->message == WM_SYSKEYDOWN) 
+//    {
+//        char str_output[256];
+//        sprintf(str_output, "syskeydown: %llx\n", msg->wParam);
+//        OutputDebugStringA(str_output);
+//        return;
+//    }
+//
+//    if (msg->message == WM_SYSKEYUP) 
+//    {
+//        char str_output[256];
+//        sprintf(str_output, "syskeyup: %llx\n", msg->wParam);
+//        OutputDebugStringA(str_output);
+//        return;
+//    }
+//
+     if (msg->message == WM_KEYDOWN)
+     {
+         down = true;
+     }
+     else
+     {
+         //assert(msg->message == WM_KEYUP);
+         down = false;
+     }
 
     if (down)
     {
         switch(msg->wParam)
         {
-            case 0x57: // 'w'
-            {
-                g_GlobalState->camera_center_y -= delta;
-                OutputDebugStringA("w: down\n");
-            } break;
-
-            case 0x41: // 'a'
-            {
-                g_GlobalState->camera_center_x -= delta;
-                OutputDebugStringA("a: down\n");
-            } break;
-
-            case 0x53: // 's'
-            {
-                g_GlobalState->camera_center_y += delta;
-                OutputDebugStringA("s: down\n");
-            } break;
-
-            case 0x44: // 'd'
-            {
-                g_GlobalState->camera_center_x += delta;
-                OutputDebugStringA("d: down\n");
-            } break;
-
-            case VK_PRIOR: // PageUp
-            {
-                bitmap_output_buffer->px_in_m -= 1;
-                OutputDebugStringA("PageUp: down\n");
-            } break;
-
-            case VK_NEXT: // PageDown
-            {
-                bitmap_output_buffer->px_in_m += 1;
-                OutputDebugStringA("PageDown: down\n");
-            } break;
-
+//            case 0x57: // 'w'
+//            {
+//                //g_GlobalState->camera_center_y -= delta;
+//                OutputDebugStringA("w: down\n");
+//            } break;
+//
+//            case 0x41: // 'a'
+//            {
+//                //g_GlobalState->camera_center_x -= delta;
+//                OutputDebugStringA("a: down\n");
+//            } break;
+//
+//            case 0x53: // 's'
+//            {
+//                //g_GlobalState->camera_center_y += delta;
+//                OutputDebugStringA("s: down\n");
+//            } break;
+//
+//            case 0x44: // 'd'
+//            {
+//                //g_GlobalState->camera_center_x += delta;
+//                OutputDebugStringA("d: down\n");
+//            } break;
+//
+//            case VK_PRIOR: // PageUp
+//            {
+//                //bitmap_output_buffer->px_in_m -= 0.1f;
+//                OutputDebugStringA("PageUp: down\n");
+//            } break;
+//
+//            case VK_NEXT: // PageDown
+//            {
+//                //bitmap_output_buffer->px_in_m += 0.1f;
+//                OutputDebugStringA("PageDown: down\n");
+//            } break;
+//
             default:
             {
                 char str_output[256];
-                sprintf(str_output, "key press ignored: %#x\n", (UINT)msg->wParam);
+                sprintf(str_output, "key down: %llx\n", msg->wParam);
                 OutputDebugStringA(str_output);
                 //return DefWindowProc(hwnd, uMsg, wParam, lParam);
             } break;
@@ -105,6 +121,9 @@ Win32HandleKeyboard(MSG * msg, BitmapOutputBuffer * bitmap_output_buffer)
     }
     else
     {
+        char str_output[256];
+        sprintf(str_output, "key up: %llx\n", msg->wParam);
+        OutputDebugStringA(str_output);
         //ignoreing key - ups
     }
 }
@@ -148,6 +167,8 @@ output_real64_to_debug(char * format_string, real64 value)
     sprintf_s(temp, 256, format_string, value);
     OutputDebugStringA(temp);
 }
+
+
 
 INT WINAPI wWinMain(HINSTANCE hInstance, 
                    HINSTANCE hPrevInstance,
@@ -249,12 +270,15 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     BitmapOutputBuffer bitmap_output_buffer;
     bitmap_output_buffer.width = game_screen_width_px;
     bitmap_output_buffer.height = game_screen_height_px;
-    bitmap_output_buffer.px_in_m = 10.0f;
-    bitmap_output_buffer.center_of_bitmap_x_m = 
-        0.5 * (real32) bitmap_output_buffer.width / bitmap_output_buffer.px_in_m;
-    bitmap_output_buffer.center_of_bitmap_y_m = 
-        0.5 * (real32) bitmap_output_buffer.height / bitmap_output_buffer.px_in_m;
+    bitmap_output_buffer.px_in_m = 100.0f;
+    //bitmap_output_buffer.center_of_bitmap_x_m = 0.5 * (real32) bitmap_output_buffer.width / bitmap_output_buffer.px_in_m;
+    bitmap_output_buffer.shift_to_center_of_bitmap_x_px = bitmap_output_buffer.width / 2;
+    //bitmap_output_buffer.center_of_bitmap_y_m = 0.5 * (real32) bitmap_output_buffer.height / bitmap_output_buffer.px_in_m;
+    bitmap_output_buffer.shift_to_center_of_bitmap_y_px = bitmap_output_buffer.height / 2;
     bitmap_output_buffer.bits = (uint32 *) bits;
+
+
+    ControlInput control_input;
 
     TIMECAPS tc_info;
     timeGetDevCaps(&tc_info, sizeof(tc_info));
@@ -268,7 +292,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     LARGE_INTEGER cur_pc_val;
     LONGLONG ticks_elapsed_cur_frame;
     LONGLONG target_ticks_elapsed_one_frame = pc_freq.QuadPart / target_fps;
-    real64 elapsed_cur_frame_ms;
+    real64 elapsed_cur_frame_ms = 0.0f;
     real64 time_to_sleep_ms;
     int32 truncated_time_to_sleep_ms;
     QueryPerformanceCounter(&prev_pc_val);
@@ -279,8 +303,10 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
         while(message_read = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
 
-            if (msg.message == WM_KEYUP || msg.message == WM_KEYDOWN) {
-                Win32HandleKeyboard(&msg, &bitmap_output_buffer);
+            if (msg.message == WM_KEYUP || msg.message == WM_KEYDOWN)// ||
+                //msg.message == WM_SYSKEYUP || msg.message == WM_SYSKEYDOWN) 
+            {
+                Win32HandleKeyboard(&msg, &control_input);
             }
             if (msg.message == WM_QUIT) {
                 g_Running = 0;
@@ -290,7 +316,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
             DispatchMessage(&msg);
         } 
 
-        UpdateStateAndRender(&bitmap_output_buffer);
+        UpdateStateAndRender(&bitmap_output_buffer, &control_input, elapsed_cur_frame_ms);
 
         QueryPerformanceCounter(&cur_pc_val);
         ticks_elapsed_cur_frame = cur_pc_val.QuadPart - prev_pc_val.QuadPart;
@@ -315,7 +341,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
 
         ticks_elapsed_cur_frame = ticks_elapsed_cur_frame * 1'000; 
         elapsed_cur_frame_ms = (real64)ticks_elapsed_cur_frame / (real64)pc_freq.QuadPart; 
-        output_real64_to_debug("%f ms\n", elapsed_cur_frame_ms);
+        //output_real64_to_debug("%f ms\n", elapsed_cur_frame_ms);
         prev_pc_val = cur_pc_val;
 
 
