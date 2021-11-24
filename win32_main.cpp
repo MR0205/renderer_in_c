@@ -45,6 +45,27 @@
 //     *height = (DWORD)(client_rect.bottom - client_rect.top);
 // }
 
+
+void RestrictCursor(HWND hwnd)
+{
+    RECT client_rect;
+    GetClientRect(hwnd, &client_rect);
+    LONG effective_left = client_rect.left + GAME_SCREEN_PADDING_X; 
+    LONG effective_top = client_rect.top + GAME_SCREEN_PADDING_Y;
+    LONG effective_right = client_rect.right < effective_left + GAME_SCREEN_WIDTH_PX ?
+                           client_rect.right : effective_left + GAME_SCREEN_WIDTH_PX;
+    LONG effective_bottom = client_rect.bottom < effective_top + GAME_SCREEN_HEIGHT_PX ?
+                            client_rect.bottom : effective_top + GAME_SCREEN_HEIGHT_PX;
+
+    POINT effective_left_top = {effective_left, effective_top};
+    POINT effective_right_bottom = {effective_right, effective_bottom};
+    ClientToScreen(hwnd, &effective_left_top);
+    ClientToScreen(hwnd, &effective_right_bottom);
+    RECT game_screen_rect_in_screen_corrdinates = {effective_left_top.x, effective_left_top.y,
+                                                   effective_right_bottom.x, effective_right_bottom.y};
+    ClipCursor(&game_screen_rect_in_screen_corrdinates);
+}
+
 int32 GetKeyboardKey(WPARAM vk_code)
 {
     int32 ret;
@@ -149,6 +170,25 @@ MouseEventType GetMouseEventType(UINT message)
 }
 
 internal void
+Win32CaptureMouseMove(MSG * msg, ControlInput * control_input)
+{
+    int32 x = (int16) msg->lParam;
+    int32 y = (int16)((msg->lParam) >> 16);
+
+    // transforming coordinates to game screen coordinates, and don't redirect anything
+    // outside of the game screen
+    x -= GAME_SCREEN_PADDING_X;
+    y -= GAME_SCREEN_PADDING_Y;
+
+    if (0 <= x && x < GAME_SCREEN_WIDTH_PX && 
+        0 <= y && y < GAME_SCREEN_HEIGHT_PX)
+    {
+        control_input->cursor_x = x;
+        control_input->cursor_y = y;
+    }
+}
+
+internal void
 Win32CaptureMouseInput(MSG * msg, ControlInput * control_input)
 {
     int32 x = (int16) msg->lParam;
@@ -168,12 +208,15 @@ Win32CaptureMouseInput(MSG * msg, ControlInput * control_input)
     }
 }
 
+
+// NOTE: holding down CTRL key while using mouse wheel will multiply the rotation by 10
 internal void
 Win32CaptureMouseWheelInput(MSG *msg, ControlInput * control_input)
 {
     int32 mouse_wheel_rotation = (int16) (msg->wParam >> 16);
     mouse_wheel_rotation /= WHEEL_DELTA;
-    control_input->mouse_wheel_rotation += mouse_wheel_rotation; 
+    int wheel_boost = ((int16) msg->wParam) & MK_CONTROL? 10:1;
+    control_input->mouse_wheel_rotation += mouse_wheel_rotation * wheel_boost; 
 }
 
 internal void 
@@ -186,7 +229,11 @@ Win32CaptureInput(MSG * msg, ControlInput * control_input)
                msg->message == WM_LBUTTONUP || msg->message == WM_RBUTTONUP)
     {
         Win32CaptureMouseInput(msg, control_input);
-    } else if (msg->message == WM_MOUSEWHEEL)
+    } else if (msg->message == WM_MOUSEMOVE)
+    {
+        Win32CaptureMouseMove(msg, control_input);
+    }
+    else if (msg->message == WM_MOUSEWHEEL)
     {
         Win32CaptureMouseWheelInput(msg, control_input);
     }
@@ -201,6 +248,10 @@ Win32WindowProc(HWND hwnd, UINT uMsg,
 {
     switch(uMsg)
     {
+        // case WM_SIZE:
+        // {
+        //     RestrictCursor(hwnd);
+        // } break;
         case WM_CLOSE:
         {
             DestroyWindow(hwnd);
@@ -297,6 +348,11 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     }
     ShowWindow(hwnd, nCmdShow);
 
+
+    RECT old_cursor_clip_rectangle;
+    GetClipCursor(&old_cursor_clip_rectangle);
+    RestrictCursor(hwnd);
+
     // TODO: step-into the code and look at the work of the functions/
     // have not tested anything of this and surprised why the usage
     // of tile map later on from the pointer when it gets evicted from the stack
@@ -366,9 +422,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     bitmap_output_buffer.width = GAME_SCREEN_WIDTH_PX;
     bitmap_output_buffer.height = GAME_SCREEN_HEIGHT_PX;
     bitmap_output_buffer.px_in_m = 100.0f;
-    //bitmap_output_buffer.center_of_bitmap_x_m = 0.5 * (real32) bitmap_output_buffer.width / bitmap_output_buffer.px_in_m;
     bitmap_output_buffer.shift_to_center_of_bitmap_x_px = bitmap_output_buffer.width / 2;
-    //bitmap_output_buffer.center_of_bitmap_y_m = 0.5 * (real32) bitmap_output_buffer.height / bitmap_output_buffer.px_in_m;
     bitmap_output_buffer.shift_to_center_of_bitmap_y_px = bitmap_output_buffer.height / 2;
     bitmap_output_buffer.bits = (uint32 *) bits;
 
@@ -457,6 +511,8 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
         */
     }
     timeEndPeriod(minimum_timer_period_ms);
+
+    ClipCursor(&old_cursor_clip_rectangle);
     return 0;
 }
 

@@ -1,34 +1,35 @@
+#include "math.h"
+#include "tilemap.h"
+#include "control_input.h"
+
 struct GameMemory
 {
     uint8 * permanent_storage;
     uint32 permanent_storage_size;
 } g_GameMemory;
 
-struct TileMap
+
+struct Hero
 {
-    real32 tile_length;
-    uint32 num_tiles_x;
-    uint32 num_tiles_y;
-    //uint32 * tiles;
-    uint32 tiles[5][10];
+    v2 pos;
+    real32 speed;
+    v2 target_pos;
+    v2 dimensions;
 };
 
 struct global_state
 {
-    real32 hero_x;
-    real32 hero_y;
+    Hero hero;
 
-    real32 camera_center_x;
-    real32 camera_center_y;
+    v2 camera_center;
 
     TileMap tile_map;
 
 
     real64 game_time_ms;
+    real64 time_delta_ms;
 
     real64 world_scaling_factor;
-
-
 
     real64 cursor_click_time;
     bool32 cursor_click;
@@ -48,53 +49,7 @@ struct BitmapOutputBuffer
     real32 px_in_m;
 };
 
-enum KeyboardKey 
-{
-    LEFT_KEY,//=VK_LEFT,
-    UP_KEY,///=VK_UP,
-    RIGHT_KEY,//=VK_RIGHT,
-    DOWN_KEY,//=VK_DOWN,
-    KEYBOARD_KEY_SIZE,
-};
 
-enum MouseEventType
-{
-    LEFT_BUTTON_PRESSED,
-    LEFT_BUTTON_RELEASED,
-    RIGHT_BUTTON_PRESSED,
-    RIGHT_BUTTON_RELEASED,
-    MOUSE_EVENT_TYPE_SIZE,
-};
-
-struct MouseEvent 
-{
-    MouseEventType mouse_event_type;
-    int32 x;
-    int32 y;
-};
-
-struct ControlInput
-{
-    bool32 keys_pressed[KEYBOARD_KEY_SIZE];
-
-    // NOTE: At the moment we keep track only of the last happened mouse event
-    // during the polling of the queue, technically we overwrite the events
-    // and the last in the message queue is passed to the UpdateStateAndRender
-    MouseEvent last_mouse_event;
-    int32 mouse_wheel_rotation;
-};
-
-// TODO: handle correctly negative range rounding 
-internal inline int32
-RoundReal32ToInt32(real32 val)
-{
-    if (val < 0) {
-        return (int32) (val - 0.5f);
-    } else 
-    {
-        return (int32) (val + 0.5f);
-    }
-}
 
 
 internal void
@@ -110,8 +65,19 @@ GetWorldCoordinatesFromGameScreenCoordinates(BitmapOutputBuffer * bitmap_output_
     int32 screen_x_relative_to_screen_center = screen_x - shift_to_center_of_bitmap_x_px;
     int32 screen_y_relative_to_screen_center = screen_y - shift_to_center_of_bitmap_y_px;
     real32 px_in_m_scaled = bitmap_output_buffer->px_in_m * g_GlobalState->world_scaling_factor;
-    *world_x = ((real32)screen_x_relative_to_screen_center)/px_in_m_scaled;// + g_GlobalState->camera_center_x;
-    *world_y = ((real32)screen_y_relative_to_screen_center)/px_in_m_scaled;// + g_GlobalState->camera_center_y;
+    //*world_x = ((real32)screen_x_relative_to_screen_center)/px_in_m_scaled;
+    //*world_y = ((real32)screen_y_relative_to_screen_center)/px_in_m_scaled;
+
+    
+    real32 world_unscaled_relative_to_screen_center_x = ((real32)screen_x_relative_to_screen_center)/px_in_m_scaled;
+    real32 world_unscaled_relative_to_screen_center_y = ((real32)screen_y_relative_to_screen_center)/px_in_m_scaled;
+
+
+    real32 world_unscaled_unrealted_to_screen_center_x = world_unscaled_relative_to_screen_center_x + g_GlobalState->camera_center.x;
+    real32 world_unscaled_unrealted_to_screen_center_y = world_unscaled_relative_to_screen_center_y + g_GlobalState->camera_center.y;
+    *world_x = world_unscaled_unrealted_to_screen_center_x;
+    *world_y = world_unscaled_unrealted_to_screen_center_y;
+
 }
 
 // TODO: comparison of int and uint when int is negative gives 'true'
@@ -130,6 +96,10 @@ DrawRectangle(BitmapOutputBuffer * bitmap_output_buffer,
               real32 min_x_real, real32 min_y_real, real32 max_x_real, real32 max_y_real,
               uint32 color) //uint8 r, uint8 g, uint8 b)
 {
+    min_x_real -= g_GlobalState->camera_center.x;
+    min_y_real -= g_GlobalState->camera_center.y;
+    max_x_real -= g_GlobalState->camera_center.x;
+    max_y_real -= g_GlobalState->camera_center.y;
     real32 px_in_m_scaled = bitmap_output_buffer->px_in_m * g_GlobalState->world_scaling_factor;
     int32 shift_to_center_of_bitmap_x_px = bitmap_output_buffer->shift_to_center_of_bitmap_x_px;
     int32 shift_to_center_of_bitmap_y_px = bitmap_output_buffer->shift_to_center_of_bitmap_y_px;
@@ -192,24 +162,18 @@ DrawRectangle(BitmapOutputBuffer * bitmap_output_buffer,
 internal void
 RenderHero(BitmapOutputBuffer * bitmap_output_buffer)
 {
-    real32 hero_width = 0.8f;
-    real32 hero_height = 1.4f;
+    v2 hero_pos_min = g_GlobalState->hero.pos - 0.5 * g_GlobalState->hero.dimensions; //  - g_GlobalState->camera_center
 
-    real32 camera_center_x = g_GlobalState->camera_center_x;
-    real32 camera_center_y = g_GlobalState->camera_center_y;
+    v2 hero_pos_max = hero_pos_min + g_GlobalState->hero.dimensions;
 
-    real32 hero_min_x = g_GlobalState->hero_x - 0.5 * hero_width - camera_center_x;
-    real32 hero_max_x = hero_min_x + hero_width;
-    real32 hero_min_y = g_GlobalState->hero_y - 0.5 * hero_height - camera_center_y;
-    real32 hero_max_y = hero_min_y + hero_height;
     uint32 hero_color = 0x000000FF;
     real32 hero_border_width = 0.05f;
     uint32 hero_border_color = 0x00FFFFFF;
-    DrawRectangle(bitmap_output_buffer, hero_min_x, hero_min_y,
-                  hero_max_x, hero_max_y, hero_border_color);
-    DrawRectangle(bitmap_output_buffer, hero_min_x + hero_border_width,
-                  hero_min_y + hero_border_width, hero_max_x - hero_border_width,
-                  hero_max_y - hero_border_width, hero_color);
+    DrawRectangle(bitmap_output_buffer, hero_pos_min.x, hero_pos_min.y,
+                  hero_pos_max.x, hero_pos_max.y, hero_border_color);
+    DrawRectangle(bitmap_output_buffer, hero_pos_min.x + hero_border_width,
+                  hero_pos_min.y + hero_border_width, hero_pos_max.x - hero_border_width,
+                  hero_pos_max.y - hero_border_width, hero_color);
 }
 
 internal void
@@ -223,19 +187,14 @@ RenderTileMap(BitmapOutputBuffer * bitmap_output_buffer)
     {
         for (int tile_column = 0; tile_column < tile_map->num_tiles_x; ++tile_column)
         {
-            
-            real32 tile_length = tile_map->tile_length;
-
-            real32 camera_center_x = g_GlobalState->camera_center_x;
-            real32 camera_center_y = g_GlobalState->camera_center_y;
-
-            real32 min_x = (tile_column * tile_length) - camera_center_x;
-            real32 max_x = (min_x + tile_length);
-            real32 min_y = (tile_row * tile_length) - camera_center_y;
-            real32 max_y = (min_y + tile_length);
+            real32 tile_length = g_GlobalState->tile_map.tile_length; 
+            v2 tile_min = {(real32) tile_column, (real32) tile_row};
+            tile_min = tile_length * tile_min;//  - g_GlobalState->camera_center;
+            v2 tile_max = tile_min + v2{tile_length, tile_length}; 
 
             color = tile_map->tiles[tile_row][tile_column];
-            DrawRectangle(bitmap_output_buffer, min_x,  min_y, max_x, max_y, color);
+            DrawRectangle(bitmap_output_buffer, tile_min.x,  tile_min.y, 
+                          tile_max.x, tile_max.y, color);
         }
     }
 }
@@ -278,28 +237,46 @@ ProcessControlInput(ControlInput * control_input,
             {
                 case LEFT_KEY:
                 {
-                    g_GlobalState->camera_center_x -= delta;
+                    g_GlobalState->camera_center.x -= delta;
                 } break;
 
                 case UP_KEY:
                 {
-                    g_GlobalState->camera_center_y -= delta;
+                    g_GlobalState->camera_center.y -= delta;
                 } break;
 
                 case RIGHT_KEY:
                 {
-                    g_GlobalState->camera_center_x += delta;
+                    g_GlobalState->camera_center.x += delta;
                 } break;
 
                 case DOWN_KEY:
                 {
-                    g_GlobalState->camera_center_y += delta;
+                    g_GlobalState->camera_center.y += delta;
                 } break;
             }
         }
     }
 
-    // TODO: probably do exponential scaling not linear
+    ////////////////////////
+
+    uint32 mouse_screen_scroll_region_length_px = 10;
+    if (control_input->cursor_x < mouse_screen_scroll_region_length_px)
+    {
+        g_GlobalState->camera_center.x -= delta;
+    } else if (control_input->cursor_x >= bitmap_output_buffer->width - mouse_screen_scroll_region_length_px)
+    {
+        g_GlobalState->camera_center.x += delta;
+    } else if (control_input->cursor_y < mouse_screen_scroll_region_length_px)
+    {
+        g_GlobalState->camera_center.y -= delta;
+    } else if (control_input->cursor_y >= bitmap_output_buffer->height - mouse_screen_scroll_region_length_px)
+    {
+        g_GlobalState->camera_center.y += delta;
+    } 
+
+    ////////////////////////
+
     real32 world_scaling_factor_delta = (real32)control_input->mouse_wheel_rotation / 100.0f; 
     g_GlobalState->world_scaling_factor += world_scaling_factor_delta; 
 
@@ -316,6 +293,8 @@ ProcessControlInput(ControlInput * control_input,
         g_GlobalState->cursor_x = world_x;
         g_GlobalState->cursor_y = world_y;
         g_GlobalState->cursor_click_time = g_GlobalState->game_time_ms;
+
+        g_GlobalState->hero.target_pos = v2{world_x, world_y};
     }
 
 //            case VK_PRIOR: // PageUp
@@ -332,6 +311,35 @@ ProcessControlInput(ControlInput * control_input,
     return;
 }
 
+internal void
+SimulateTimeStep()
+{
+    
+    if ( g_GlobalState->hero.pos != g_GlobalState->hero.target_pos)
+    {
+        v2 direction = g_GlobalState->hero.target_pos - g_GlobalState->hero.pos;
+        v2 direction_noralised = direction;
+
+        normalize(&direction_noralised);
+
+        v2 full_speed_distance_step = direction_noralised * (g_GlobalState->time_delta_ms * g_GlobalState->hero.speed);
+
+        v2 new_pos;
+        real32 norm_full_speed_distance_step = norm(full_speed_distance_step);
+        real32 norm_direction = norm(direction);
+        if (norm_full_speed_distance_step <= norm_direction)
+        {
+            new_pos = g_GlobalState->hero.pos + full_speed_distance_step;
+
+        } else
+        {
+            new_pos = g_GlobalState->hero.target_pos;
+        }
+
+        g_GlobalState->hero.pos = new_pos;
+    }
+}
+
 internal void 
 UpdateStateAndRender(BitmapOutputBuffer * bitmap_output_buffer, 
                      ControlInput * control_input,
@@ -341,13 +349,16 @@ UpdateStateAndRender(BitmapOutputBuffer * bitmap_output_buffer,
     if (!initialized)
     {
         g_GlobalState = (global_state *) g_GameMemory.permanent_storage;
-        g_GlobalState->hero_x = 1.0f;
-        g_GlobalState->hero_y = 1.0f;
+        g_GlobalState->hero.pos = {1.0f, 1.0f};
+        g_GlobalState->hero.target_pos = g_GlobalState->hero.pos;
+        g_GlobalState->hero.dimensions = {0.8f, 1.4f};
+        g_GlobalState->hero.speed = 0.0015f;
 
-        g_GlobalState->camera_center_x = 5.0f;
-        g_GlobalState->camera_center_y = 2.5f;
+
+        g_GlobalState->camera_center = {5.0f, 2.5f};
 
         g_GlobalState->game_time_ms = 0.0f;
+        g_GlobalState->time_delta_ms = 0.0f;
         g_GlobalState->world_scaling_factor = 1.0f;
         TileMap tile_map;
 
@@ -376,9 +387,13 @@ UpdateStateAndRender(BitmapOutputBuffer * bitmap_output_buffer,
     }
 
     g_GlobalState->game_time_ms += time_delta_ms;
+    g_GlobalState->time_delta_ms = time_delta_ms;
 
 
     ProcessControlInput(control_input, bitmap_output_buffer);
+
+    SimulateTimeStep();
+
     RenderTileMap(bitmap_output_buffer);
     RenderHero(bitmap_output_buffer);
     RenderCursorClick(bitmap_output_buffer);
