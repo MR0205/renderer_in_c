@@ -7,11 +7,9 @@
 
 struct Hero
 {
-    //v2 pos;
-    WorldCoord pos;
+    v2 pos;
     real32 speed;
-    //v2 target_pos;
-    WorldCoord target_pos;
+    v2 target_pos;
     v2 dimensions;
 };
 
@@ -39,10 +37,8 @@ struct GlobalState
 
     real64 cursor_click_time;
     bool32 cursor_click;
-
-    WorldCoord cursor_pos;
-    //real32 cursor_x;
-    //real32 cursor_y;
+    real32 cursor_x;
+    real32 cursor_y;
 
     Bitmap * man_bitmap;
 
@@ -52,7 +48,7 @@ struct GlobalState
 internal void
 GetWorldCoordinatesFromGameScreenCoordinates(BitmapOutputBuffer * bitmap_output_buffer, 
                                              int32 screen_x, int32 screen_y, 
-                                             WorldCoord * pos)
+                                             real32 * world_x, real32 * world_y)
 {
 
     int32 shift_to_center_of_bitmap_x_px = bitmap_output_buffer->shift_to_center_of_bitmap_x_px;
@@ -257,14 +253,19 @@ DrawBitmap(Bitmap * bitmap, BitmapOutputBuffer * bitmap_output_buffer,
 internal void
 RenderHero(BitmapOutputBuffer * bitmap_output_buffer)
 {
-    //v2 hero_pos_min = g_GlobalState->hero.pos - 0.5 * g_GlobalState->hero.dimensions; //  - g_GlobalState->camera_center
+    v2 hero_pos_min = g_GlobalState->hero.pos - 0.5 * g_GlobalState->hero.dimensions; //  - g_GlobalState->camera_center
 
-    //v2 hero_pos_max = hero_pos_min + g_GlobalState->hero.dimensions;
+    v2 hero_pos_max = hero_pos_min + g_GlobalState->hero.dimensions;
 
     uint32 hero_color = 0x000000FF;
     real32 hero_border_width = 0.05f;
     uint32 hero_border_color = 0x00FFFFFF;
-    DrawBitmap(g_GlobalState->man_bitmap, bitmap_output_buffer, g_GlobalState->hero.pos);
+    DrawBitmap(g_GlobalState->man_bitmap, bitmap_output_buffer, g_GlobalState->hero.pos.x, g_GlobalState->hero.pos.y);
+    // DrawRectangle(bitmap_output_buffer, hero_pos_min.x, hero_pos_min.y,
+    //               hero_pos_max.x, hero_pos_max.y, hero_border_color);
+    // DrawRectangle(bitmap_output_buffer, hero_pos_min.x + hero_border_width,
+    //               hero_pos_min.y + hero_border_width, hero_pos_max.x - hero_border_width,
+    //               hero_pos_max.y - hero_border_width, hero_color);
 }
 
 internal void
@@ -297,20 +298,17 @@ RenderCursorClick(BitmapOutputBuffer * bitmap_output_buffer)
     if (g_GlobalState->cursor_click && 
         (g_GlobalState->game_time_ms - g_GlobalState->cursor_click_time < 100.0f))
     {
-        //real32 cursor_x = g_GlobalState->cursor_x;
-        //real32 cursor_y = g_GlobalState->cursor_y;
+        real32 cursor_x = g_GlobalState->cursor_x;
+        real32 cursor_y = g_GlobalState->cursor_y;
 
-        WorldCoord cursor_pos = g_GlobalState->cursor_pos;
-        // TODO: render the curor click
+        real32 splah_square_edge_length = 0.1f;
 
-        real32 cursor_highlight_square_edge_length = 0.1f;
-
-        // DrawRectangle(bitmap_output_buffer, 
-        //               cursor_x - cursor_highlight_square_edge_length/2,
-        //               cursor_y - cursor_highlight_square_edge_length/2,
-        //               cursor_x + cursor_highlight_square_edge_length/2,
-        //               cursor_y + cursor_highlight_square_edge_length/2,
-        //               0x00888888);
+        DrawRectangle(bitmap_output_buffer, 
+                      cursor_x - splah_square_edge_length/2,
+                      cursor_y - splah_square_edge_length/2,
+                      cursor_x + splah_square_edge_length/2,
+                      cursor_y + splah_square_edge_length/2,
+                      0x00888888);
     }
 }
 // didn't want to pass here bitmap_output_buffer as we don't need to change it
@@ -379,19 +377,30 @@ ProcessControlInput(ControlInput * control_input,
     {
         int32 screen_x = control_input->last_mouse_event.x;
         int32 screen_y = control_input->last_mouse_event.y;
-        WorldCoord target_pos;
-        // TODO: reimplement the function
-        // GetWorldCoordinatesFromGameScreenCoordinates(bitmap_output_buffer,
-        //                                              screen_x, screen_y,
-        //                                              &target_pos);
-        // g_GlobalState->cursor_click = true;
-        // g_GlobalState->cursor_pos = target_pos;
+        real32 world_x;
+        real32 world_y;
+        GetWorldCoordinatesFromGameScreenCoordinates(bitmap_output_buffer,
+                                                     screen_x, screen_y,
+                                                     &world_x, &world_y);
+        g_GlobalState->cursor_click = true;
+        g_GlobalState->cursor_x = world_x;
+        g_GlobalState->cursor_y = world_y;
+        g_GlobalState->cursor_click_time = g_GlobalState->game_time_ms;
 
-        // g_GlobalState->cursor_click_time = g_GlobalState->game_time_ms;
-
-        // g_GlobalState->hero.target_pos = target_pos;
+        g_GlobalState->hero.target_pos = v2{world_x, world_y};
     }
 
+//            case VK_PRIOR: // PageUp
+//            {
+//                //bitmap_output_buffer->px_in_m -= 0.1f;
+//                OutputDebugStringA("PageUp: down\n");
+//            } break;
+//
+//            case VK_NEXT: // PageDown
+//            {
+//                //bitmap_output_buffer->px_in_m += 0.1f;
+//                OutputDebugStringA("PageDown: down\n");
+//            } break;
     return;
 }
 
@@ -571,7 +580,7 @@ UpdateStateAndRender(GameMemory * game_memory,
 
         uint32 file_cache_arena_size = 256 * MEGABYTE; 
         ASSERT(game_memory->permanent_storage_size >= memory_distributed + file_cache_arena_size);
-        //game_memory->file_cache_arena = {};
+        game_memory->file_cache_arena = {};
         game_memory->file_cache_arena.first_byte = game_memory->permanent_storage + memory_distributed;
         game_memory->file_cache_arena.size = file_cache_arena_size;
         memory_distributed += file_cache_arena_size;
@@ -579,7 +588,7 @@ UpdateStateAndRender(GameMemory * game_memory,
         uint32 rest_of_the_permanent_storage_size = game_memory->permanent_storage_size - memory_distributed;
         uint32 dynamic_storage_arena_size = rest_of_the_permanent_storage_size;
         ASSERT(game_memory->permanent_storage_size >= memory_distributed + dynamic_storage_arena_size);
-        //game_memory->dynamic_storage_arena = {};
+        game_memory->dynamic_storage_arena = {};
         game_memory->dynamic_storage_arena.first_byte = game_memory->permanent_storage + memory_distributed;
         game_memory->dynamic_storage_arena.size = dynamic_storage_arena_size;
         memory_distributed += dynamic_storage_arena_size;
@@ -587,12 +596,7 @@ UpdateStateAndRender(GameMemory * game_memory,
         uint8 * man_bmp_file = platform_procedures->ReadFileIntoMemory("D:\\c_proj\\assets\\develop\\man\\man2.bmp", &game_memory->file_cache_arena);
         g_GlobalState->man_bitmap = ReadLoadedBmp(man_bmp_file, &game_memory->dynamic_storage_arena);
 
-        WorldCoord hero_pos = {};
-        hero_pos.on_tilemap = {0, 0};
-        hero_pos.in_tile = {1.0f, 1.0f};
-
-        g_GlobalState->hero.pos = hero_pos;
-
+        g_GlobalState->hero.pos = {1.0f, 1.0f};
         g_GlobalState->hero.target_pos = g_GlobalState->hero.pos;
         g_GlobalState->hero.dimensions = {0.8f, 1.4f};
         g_GlobalState->hero.speed = 0.0015f;
@@ -642,13 +646,11 @@ UpdateStateAndRender(GameMemory * game_memory,
 
     ProcessControlInput(control_input, bitmap_output_buffer);
 
-    //SimulateTimeStep();
+    SimulateTimeStep();
 
-    // TODO: reimplement the function
-    //RenderTileMap(bitmap_output_buffer);
+    RenderTileMap(bitmap_output_buffer);
     RenderHero(bitmap_output_buffer);
-    //TODO
-    //RenderCursorClick(bitmap_output_buffer);
+    RenderCursorClick(bitmap_output_buffer);
     //RenderBitmap2(g_GlobalState->man_bitmap, bitmap_output_buffer, 0.0f, 0.0f);
 }
 
