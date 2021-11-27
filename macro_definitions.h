@@ -1,5 +1,4 @@
 #if !defined( MACRO_DEFINITIONS_H )
-#define MACRO_DEFINITIONS_H
 
 
 
@@ -24,8 +23,11 @@
 #define local_persist static
 #define internal static
 
+#define KILOBYTE (1024)
+#define MEGABYTE (1024 * 1024)
+#define GIGABYTE (1024 * MEGABYTE)
 
 
 
-
+#define MACRO_DEFINITIONS_H
 #endif

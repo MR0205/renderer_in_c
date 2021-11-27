@@ -19,7 +19,9 @@ struct GameMemory
     uint8 * permanent_storage;
     uint32 permanent_storage_size;
 
-    MemoryArena disk_files_memory_arena;
+    // NOTE: first bytes of permanent_storage are taken by g_GlobalState structure
+    MemoryArena dynamic_storage_arena;
+    MemoryArena file_cache_arena;
 };
 
 struct BitmapOutputBuffer

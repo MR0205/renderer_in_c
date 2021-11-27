@@ -489,7 +489,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     uint32 requested_game_memory_size = 1024 * 1024 * 1024;
     BYTE * virtual_alloc_rerurn = (BYTE *)VirtualAlloc(NULL, requested_game_memory_size,
                                                MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
-    GameMemory game_memory;
+    GameMemory game_memory = {};
     if (virtual_alloc_rerurn) 
     {
         game_memory.permanent_storage = virtual_alloc_rerurn;

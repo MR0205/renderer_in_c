@@ -23,6 +23,12 @@ RoundReal32ToInt32(real32 val)
     }
 }
 
+struct v2ui
+{
+    uint32 x;
+    uint32 y;
+};
+
 struct v2
 {
     real32 x;
