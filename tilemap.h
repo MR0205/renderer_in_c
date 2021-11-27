@@ -9,7 +9,7 @@ struct TileMap
     uint32 num_tiles_x;
     uint32 num_tiles_y;
     //uint32 * tiles;
-    uint32 tiles[5][10];
+    uint32 tiles[30][30];
 };
 
 #endif

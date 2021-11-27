@@ -9,26 +9,9 @@
 #include <wingdi.h>
 #include <strsafe.h>
 
-#define int8 char
-#define int16 short
-#define int32 int
-#define int64 long long
-
-#define uint8 unsigned char
-#define uint16 unsigned short
-#define uint32 unsigned int
-#define uint64 unsigned long long
-
-#define real32 float
-#define real64 double
-
-#define bool32 int
-
-#define local_persist static
-#define internal static
-#define ASSERT(expression) (if(!expression) {*((int *)(0))=0;})
-
-#include "engine.cpp"
+#include "macro_definitions.h"
+#include "platform.h"
+#include "win32.h"
 
 #define GAME_SCREEN_WIDTH_PX 1920/2
 #define GAME_SCREEN_HEIGHT_PX 1080/2
@@ -45,8 +28,8 @@
 //     *height = (DWORD)(client_rect.bottom - client_rect.top);
 // }
 
-
-void RestrictCursor(HWND hwnd)
+internal void 
+RestrictCursor(HWND hwnd)
 {
     RECT client_rect;
     GetClientRect(hwnd, &client_rect);
@@ -66,7 +49,8 @@ void RestrictCursor(HWND hwnd)
     ClipCursor(&game_screen_rect_in_screen_corrdinates);
 }
 
-int32 GetKeyboardKey(WPARAM vk_code)
+internal int32 
+GetKeyboardKey(WPARAM vk_code)
 {
     int32 ret;
     switch (vk_code)
@@ -94,7 +78,7 @@ int32 GetKeyboardKey(WPARAM vk_code)
 
         default:
         {
-            //ASSERT(0)
+            ASSERT(0)
             // log error
         } break;
     }
@@ -132,8 +116,8 @@ Win32CaptureKeyboardInput(MSG * msg, ControlInput * control_input)
     }
 }
 
-
-MouseEventType GetMouseEventType(UINT message)
+internal MouseEventType 
+GetMouseEventType(UINT message)
 {
     MouseEventType ret;
     switch (message)
@@ -161,7 +145,7 @@ MouseEventType GetMouseEventType(UINT message)
 
         default:
         {
-            //ASSERT(0);
+            ASSERT(0);
             // log error
         } break;
     }
@@ -316,7 +300,156 @@ DEBUGPrintControlInputArray(ControlInput * control_input)
     OutputDebugStringA(ret);
 }
 
+internal bool32
+GetEngineDllWriteFileTime(FILETIME * dll_file_write_time)
+{
+    HANDLE engine_dll_file_handle = CreateFileA("engine.dll", 0, 0, NULL, OPEN_EXISTING, 
+                                                 FILE_ATTRIBUTE_NORMAL, NULL);
+    if (engine_dll_file_handle != INVALID_HANDLE_VALUE)
+    {
+        BY_HANDLE_FILE_INFORMATION file_information;
+        BOOL get_file_info_ret = GetFileInformationByHandle(engine_dll_file_handle, &file_information);
+        CloseHandle(engine_dll_file_handle);
 
+        if(get_file_info_ret)
+        {
+             *dll_file_write_time = file_information.ftLastWriteTime;
+        } else
+        {
+            OutputDebugStringA("Couldn't get write time information.\n");
+            return false;
+        }
+    } else
+    {
+        //OutputDebugStringA("File is not on disk?\n");
+        return false;
+    }
+    return true;
+}
+
+struct EngineDll
+{
+    HMODULE handle;
+    UpdateStateAndRenderPrototype UpdateStateAndRenderLoadedAddress;
+    FILETIME write_time;
+};
+
+internal bool32
+LoadEngineDll(EngineDll * engine_dll)
+{
+    engine_dll->handle = LoadLibraryA("engine.dll");
+    if (!engine_dll->handle)
+    {
+        OutputDebugStringA("Loading dll failed.\n");
+        //Log error
+        return false;
+    } else 
+    {
+        OutputDebugStringA("Loading dll succeded.\n");
+    }
+    engine_dll->UpdateStateAndRenderLoadedAddress = (UpdateStateAndRenderPrototype) GetProcAddress(engine_dll->handle, "UpdateStateAndRender");
+    if (!engine_dll->UpdateStateAndRenderLoadedAddress)
+    {
+        OutputDebugStringA("Getting function address failed.\n");
+        // Log error
+        return false;
+    } else
+    {
+        OutputDebugStringA("Getting function address succeded.\n");
+    }
+
+    return true;
+}
+
+
+bool32 WritingDllFinished()
+{
+    HANDLE still_writing_file_handle = CreateFileA("still_writing", 0, 0, NULL, OPEN_EXISTING, 
+                                                 FILE_ATTRIBUTE_NORMAL, NULL);
+    bool32 return_val = false;
+    if (still_writing_file_handle == INVALID_HANDLE_VALUE)
+    {
+        return_val = true;
+    } else
+    {
+        return_val = false;
+        CloseHandle(still_writing_file_handle);
+    }
+    return return_val;
+}
+
+uint8 * ReadFileIntoMemory(char * file_path, MemoryArena * memory_arena)
+{
+    HANDLE file_handle = CreateFileA(file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, 
+                                     FILE_ATTRIBUTE_NORMAL, NULL);
+    uint8 * return_pointer = NULL;
+
+
+    if (file_handle)
+    {
+        LARGE_INTEGER file_size;
+        BOOL get_file_size_ret = GetFileSizeEx(file_handle, &file_size);
+        if (get_file_size_ret)
+        {
+            if (file_size.QuadPart <= 0xFFFFFFFF)
+            {
+                if ( (int64) (memory_arena->size - memory_arena->consumed) >= (int64) file_size.QuadPart )
+                {
+                    uint8 * memory_for_file_read = GetMemoryFromArena( (uint32) file_size.QuadPart, memory_arena);
+                    ASSERT( ( (uint32) file_size.QuadPart) == file_size.QuadPart);
+
+
+                    DWORD number_of_bytes_read;
+                    BOOL read_file_ret = ReadFile(file_handle, (void *) memory_for_file_read, file_size.QuadPart,
+                                                  &number_of_bytes_read, NULL);
+                    if (read_file_ret)
+                    {
+                        if (number_of_bytes_read == (DWORD) file_size.QuadPart)
+                        {
+                            OutputDebugStringA("File read sucess.\n");
+                            return_pointer = memory_for_file_read;
+
+                        } else
+                        {
+                            OutputDebugStringA("File read only partially.\n");
+                            // log file read partially
+                        }
+                    } else
+                    {
+                        OutputDebugStringA("File read error.\n");
+                        // log file read error
+                    }
+
+
+                } else
+                {
+                    // log unsiffucient memory
+                    OutputDebugStringA("Not enough memory in the arena to read the file.\n");
+                }
+            } else
+            {
+                    OutputDebugStringA("Currently supporting only file sizes that fit into uint32.\n");
+                // log unsupported file size
+            }
+        } else
+        {
+            OutputDebugStringA("Could not get file size.\n");
+            // log getting file size failure
+        }
+        CloseHandle(file_handle);
+    } else
+    {
+        OutputDebugStringA("Could not open the file.\n");
+        // log file opening error
+    }
+    DWORD last_error_code = GetLastError();
+
+    char temp[256];
+    sprintf_s(temp, 256, "File read last error code: %d\n", last_error_code);
+
+    OutputDebugStringA(temp);
+    return return_pointer;
+}
 
 INT WINAPI wWinMain(HINSTANCE hInstance, 
                    HINSTANCE hPrevInstance,
@@ -353,18 +486,14 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     GetClipCursor(&old_cursor_clip_rectangle);
     RestrictCursor(hwnd);
 
-    // TODO: step-into the code and look at the work of the functions/
-    // have not tested anything of this and surprised why the usage
-    // of tile map later on from the pointer when it gets evicted from the stack
-    // doesnt cause program to crash
-    
-    uint32 requested_game_memory_size = 200 * 1024 * 1024;
+    uint32 requested_game_memory_size = 1024 * 1024 * 1024;
     BYTE * virtual_alloc_rerurn = (BYTE *)VirtualAlloc(NULL, requested_game_memory_size,
                                                MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+    GameMemory game_memory;
     if (virtual_alloc_rerurn) 
     {
-        g_GameMemory.permanent_storage = virtual_alloc_rerurn;
-        g_GameMemory.permanent_storage_size = requested_game_memory_size;
+        game_memory.permanent_storage = virtual_alloc_rerurn;
+        game_memory.permanent_storage_size = requested_game_memory_size;
     } else
     {
         // log memory error
@@ -372,6 +501,21 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     }
 
 
+
+
+    FILETIME on_disk_dll_file_write_time;
+    EngineDll engine_dll;
+
+    if(!LoadEngineDll(&engine_dll))
+    {
+        // log error initial loading of the engine dll
+        return -1;
+    }
+    if (!GetEngineDllWriteFileTime(&engine_dll.write_time))
+    {
+        // log error getting write time of the loaded file, very unlikely?
+        return -1;
+    }
 
     MSG msg;
     BOOL message_read;
@@ -444,9 +588,9 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     LONGLONG target_ticks_elapsed_one_frame = pc_freq.QuadPart / target_fps;
     real64 elapsed_cur_frame_ms = 0.0f;
     real64 time_to_sleep_ms;
+    uint64 milliseconds_since_start_of_the_game = 0;
     int32 truncated_time_to_sleep_ms;
     QueryPerformanceCounter(&prev_pc_val);
-
     while (g_Running)
     {
         // reinitialising not persistent Control Input
@@ -464,9 +608,60 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
             DispatchMessage(&msg);
         } 
 
-        DEBUGPrintControlInputArray(&control_input);
+#if 1
+        // looking for newer version only once every second
+        // due to the increments of not unit length and possibly varying length of time
+        // this check allows us to check not exactly unit precision, but based
+        // on the length of the last increment, which succeeds if we were placed
+        // at the begining of the period for the first time
+        // as there is probability that we land on % 1000 == 0 and trigger and additional firing
+        // we prevent from that case
+        uint64 milliseconds_since_start_of_the_period = milliseconds_since_start_of_the_game % 1000;
+        if ( (0 < milliseconds_since_start_of_the_period) && 
+             (milliseconds_since_start_of_the_period <= (uint64) elapsed_cur_frame_ms) )
+        {
+            if (WritingDllFinished() && GetEngineDllWriteFileTime(&on_disk_dll_file_write_time))
+            {
+                if (CompareFileTime(&engine_dll.write_time, &on_disk_dll_file_write_time) == -1)
+                {
+                    if(!FreeLibrary(engine_dll.handle))
+                    {
+                        OutputDebugStringA("Unable to unload the dll.\n");
+                        return -1;
+                    }
+                    if(!LoadEngineDll(&engine_dll))
+                    {
+                        OutputDebugStringA("Loading of new dll failed for unknown reasons. Terminating.\n");
+                        return -1;
+                        // failed loading the dll that is on disk and has a write time
+                        // strictly older than currently loaded dll
 
-        UpdateStateAndRender(&bitmap_output_buffer, &control_input, elapsed_cur_frame_ms);
+                    } else
+                    {
+                        engine_dll.write_time = on_disk_dll_file_write_time;
+                        // successfully loaded new version of the dll.
+                    }
+                } else
+                {
+                    //do nothing, we have actual version
+                }
+            } else
+            {
+                // building procedure renamed the old engine.dll but haven't yet finished writing the new one,
+                //  waiting for the write complete. we are fine
+            }
+        }
+#endif
+
+
+        //DEBUGPrintControlInputArray(&control_input);
+
+        PlatformProcedures platform_procedures;
+        platform_procedures.ReadFileIntoMemory = ReadFileIntoMemory;
+        (engine_dll.UpdateStateAndRenderLoadedAddress)(&game_memory, &bitmap_output_buffer, 
+                                                       &control_input, &platform_procedures,
+                                                       elapsed_cur_frame_ms);
+
 
         QueryPerformanceCounter(&cur_pc_val);
         ticks_elapsed_cur_frame = cur_pc_val.QuadPart - prev_pc_val.QuadPart;
@@ -491,7 +686,8 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
 
         ticks_elapsed_cur_frame = ticks_elapsed_cur_frame * 1'000; 
         elapsed_cur_frame_ms = (real64)ticks_elapsed_cur_frame / (real64)pc_freq.QuadPart; 
-        //output_real64_to_debug("%f ms\n", elapsed_cur_frame_ms);
+        milliseconds_since_start_of_the_game += (uint64) elapsed_cur_frame_ms;
+        output_real64_to_debug("%f ms\n", elapsed_cur_frame_ms);
         prev_pc_val = cur_pc_val;
 
 
