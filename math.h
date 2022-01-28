@@ -96,6 +96,13 @@ operator*=(v2 &b, real32 a)
 }
 
 
+inline v2 &
+operator+=(v2 &a, v2 b)
+{
+    a = a + b;
+    return a;
+}
+
 inline v2
 operator-(v2 a)
 {

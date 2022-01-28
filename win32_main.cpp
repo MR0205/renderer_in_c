@@ -1,3 +1,10 @@
+/*
+TODO:
+ hot reloading doesnt work.
+
+
+   */
+
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -186,7 +193,7 @@ Win32CaptureMouseInput(MSG * msg, ControlInput * control_input)
     if (0 <= x && x < GAME_SCREEN_WIDTH_PX && 
         0 <= y && y < GAME_SCREEN_HEIGHT_PX)
     {
-        control_input->last_mouse_event.mouse_event_type = GetMouseEventType(msg->message);
+        control_input->last_mouse_event.type = GetMouseEventType(msg->message);
         control_input->last_mouse_event.x = x;
         control_input->last_mouse_event.y = y;
     }
@@ -286,7 +293,7 @@ DEBUGPrintControlInputArray(ControlInput * control_input)
     StringCchCatA(ret, 256, "), ");
 
     sprintf_s(temp2, 256, "mouse event type, x,y: (%d %d %d), ", 
-              control_input->last_mouse_event.mouse_event_type,
+              control_input->last_mouse_event.type,
               control_input->last_mouse_event.x,
               control_input->last_mouse_event.y);
 
@@ -378,12 +385,12 @@ bool32 WritingDllFinished()
     return return_val;
 }
 
-uint8 * ReadFileIntoMemory(char * file_path, MemoryArena * memory_arena)
+FileReadResult ReadFileIntoMemory(char * file_path)
 {
     HANDLE file_handle = CreateFileA(file_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, 
                                      FILE_ATTRIBUTE_NORMAL, NULL);
-    uint8 * return_pointer = NULL;
-
+    //uint8 * return_pointer = NULL;
+    FileReadResult result;
 
     if (file_handle)
     {
@@ -393,21 +400,19 @@ uint8 * ReadFileIntoMemory(char * file_path, MemoryArena * memory_arena)
         {
             if (file_size.QuadPart <= 0xFFFFFFFF)
             {
-                if ( (int64) (memory_arena->size - memory_arena->consumed) >= (int64) file_size.QuadPart )
+                result.start_pointer = (uint8 *) VirtualAlloc(NULL, file_size.QuadPart, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+
+                if (result.start_pointer)
                 {
-                    uint8 * memory_for_file_read = GetMemoryFromArena( (uint32) file_size.QuadPart, memory_arena);
-                    ASSERT( ( (uint32) file_size.QuadPart) == file_size.QuadPart);
-
-
                     DWORD number_of_bytes_read;
-                    BOOL read_file_ret = ReadFile(file_handle, (void *) memory_for_file_read, file_size.QuadPart,
-                                                  &number_of_bytes_read, NULL);
+                    BOOL read_file_ret = ReadFile(file_handle, result.start_pointer, (DWORD) file_size.QuadPart, &number_of_bytes_read, NULL);
                     if (read_file_ret)
                     {
+                        // TODO: stopped here. why dword bytes read, when i can pass longlong to bytes to read???
                         if (number_of_bytes_read == (DWORD) file_size.QuadPart)
                         {
                             OutputDebugStringA("File read sucess.\n");
-                            return_pointer = memory_for_file_read;
+                            result.file_size = number_of_bytes_read; //TODO:
 
                         } else
                         {
@@ -419,12 +424,9 @@ uint8 * ReadFileIntoMemory(char * file_path, MemoryArena * memory_arena)
                         OutputDebugStringA("File read error.\n");
                         // log file read error
                     }
-
-
                 } else
                 {
-                    // log unsiffucient memory
-                    OutputDebugStringA("Not enough memory in the arena to read the file.\n");
+                    OutputDebugStringA("Failed to allocate memory for a file read with VirtualAlloc.\n");
                 }
             } else
             {
@@ -448,7 +450,19 @@ uint8 * ReadFileIntoMemory(char * file_path, MemoryArena * memory_arena)
     sprintf_s(temp, 256, "File read last error code: %d\n", last_error_code);
 
     OutputDebugStringA(temp);
-    return return_pointer;
+
+    ASSERT(result.start_pointer);
+    return result;
+}
+
+bool32 FreeFileReadResultFromMemory(FileReadResult file_read_result)
+{
+    if ( ! VirtualFree(file_read_result.start_pointer, 0, MEM_RELEASE))
+    {
+        OutputDebugStringA("Error in freeing memory by VirtualFree!");
+        return false;
+    }
+    return true;
 }
 
 INT WINAPI wWinMain(HINSTANCE hInstance, 
@@ -456,6 +470,10 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
                    PWSTR lpCmdLine,
                    INT nCmdShow)
 {
+    PlatformProcedures platform_procedures;
+    platform_procedures.ReadFileIntoMemory = ReadFileIntoMemory;
+    platform_procedures.FreeFileReadResultFromMemory = FreeFileReadResultFromMemory;
+
     LARGE_INTEGER pc_freq;
     QueryPerformanceFrequency(&pc_freq);
 
@@ -486,21 +504,19 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     GetClipCursor(&old_cursor_clip_rectangle);
     RestrictCursor(hwnd);
 
-    uint32 requested_game_memory_size = 1024 * 1024 * 1024;
-    BYTE * virtual_alloc_rerurn = (BYTE *)VirtualAlloc(NULL, requested_game_memory_size,
+    SIZE_T requested_game_memory_size = 1 * GIGABYTE; // SIZE_T is defined as __int64
+    LPVOID virtual_alloc_return = VirtualAlloc(NULL, requested_game_memory_size,
                                                MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
     GameMemory game_memory = {};
-    if (virtual_alloc_rerurn) 
+    if (virtual_alloc_return) 
     {
-        game_memory.permanent_storage = virtual_alloc_rerurn;
+        game_memory.permanent_storage = (uint8 *) virtual_alloc_return;
         game_memory.permanent_storage_size = requested_game_memory_size;
     } else
     {
         // log memory error
         return -1;
     }
-
-
 
 
     FILETIME on_disk_dll_file_write_time;
@@ -595,6 +611,8 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
     {
         // reinitialising not persistent Control Input
         control_input.mouse_wheel_rotation = 0;
+        // TODO: think through the implementation of left click behaviour
+        control_input.last_mouse_event = {}; // typically the mouse click are handled right away, without the need of persisting their state (zeroes the structures makes not handling the same event twice easier, without introduction of flags, or capturing event time)
         while(message_read = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
 
@@ -656,8 +674,7 @@ INT WINAPI wWinMain(HINSTANCE hInstance,
 
         //DEBUGPrintControlInputArray(&control_input);
 
-        PlatformProcedures platform_procedures;
-        platform_procedures.ReadFileIntoMemory = ReadFileIntoMemory;
+
         (engine_dll.UpdateStateAndRenderLoadedAddress)(&game_memory, &bitmap_output_buffer, 
                                                        &control_input, &platform_procedures,
                                                        elapsed_cur_frame_ms);

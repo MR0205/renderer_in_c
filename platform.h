@@ -1,14 +1,13 @@
 #if !defined( PLATFORM_H )
-#define PLATFORM_H
 
-#include "win32.h"
+//#include "win32.h"
 
 
 struct MemoryArena
 {
     uint8 * first_byte;
-    uint32 consumed;
-    uint32 size;
+    size_t consumed;
+    size_t size;
 };
 
 // TODO: make the disk files arena circular, so when it is full it reutilizes the entirety from the beginning . as we load the files
@@ -17,11 +16,11 @@ struct MemoryArena
 struct GameMemory
 {
     uint8 * permanent_storage;
-    uint32 permanent_storage_size;
+    size_t permanent_storage_size;
 
     // NOTE: first bytes of permanent_storage are taken by g_GlobalState structure
     MemoryArena dynamic_storage_arena;
-    MemoryArena file_cache_arena;
+    //MemoryArena file_cache_arena;
 };
 
 struct BitmapOutputBuffer
@@ -57,7 +56,7 @@ enum MouseEventType
 
 struct MouseEvent 
 {
-    MouseEventType mouse_event_type;
+    MouseEventType type;
     int32 x;
     int32 y;
 };
@@ -90,9 +89,16 @@ GetMemoryFromArena(uint32 bytes_requested, MemoryArena * memory_arena)
     return memory_start;
 }
 
+struct FileReadResult
+{
+    uint8 * start_pointer;
+    size_t file_size;
+};
+
 struct PlatformProcedures
 {
-    uint8 * (*ReadFileIntoMemory) (char * file_path, MemoryArena * memory_arena);
+    FileReadResult (*ReadFileIntoMemory) (char * file_path);
+    bool32 (*FreeFileReadResultFromMemory) (FileReadResult file_read_result);
 };
 
 typedef void (* UpdateStateAndRenderPrototype)(GameMemory *, BitmapOutputBuffer *, ControlInput *,
@@ -100,4 +106,5 @@ typedef void (* UpdateStateAndRenderPrototype)(GameMemory *, BitmapOutputBuffer 
 
 
 
+#define PLATFORM_H
 #endif
