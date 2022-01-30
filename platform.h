@@ -20,7 +20,6 @@ struct GameMemory
 
     // NOTE: first bytes of permanent_storage are taken by g_GlobalState structure
     MemoryArena dynamic_storage_arena;
-    //MemoryArena file_cache_arena;
 };
 
 struct BitmapOutputBuffer

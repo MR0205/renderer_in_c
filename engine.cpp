@@ -13,6 +13,12 @@ struct Bitmap
     uint32 * bits;
 };
 
+struct ParseFontFileResult
+{
+    Bitmap ** glyphs_bitmaps_pointers_array;
+    uint32 number_of_glyphs;
+};
+
 struct GlobalState
 {
     bool32 initialized;
@@ -40,6 +46,9 @@ struct GlobalState
     real32 cursor_cur_y; // mouse_selection_max_y;
 
     Bitmap * man_bitmap;
+    ParseFontFileResult font;
+    //Bitmap ** glyphs_bitmaps_pointers_array;
+    //uint32 number_of_glyphs;
 
 } * g_GlobalState;
 
@@ -507,7 +516,7 @@ struct BmpBitmapV1Header
     int32 bitmap_width;
     int32 bitmap_height; // cant be negative
     uint16 num_planes; // always 1
-    uint16 bits_per_color;
+    uint16 bits_per_pixel;
     uint32 compression;
     uint32 size_of_buffer_for_compressed; // used for compressed formats
     int32 horizontal_resolution_px_per_m;
@@ -524,7 +533,7 @@ struct BmpBitmapV5Header
     int32 bitmap_width;
     int32 bitmap_height; // cant be negative
     uint16 num_planes; // always 1
-    uint16 bits_per_color;
+    uint16 bits_per_pixel;
     uint32 compression;
     uint32 size_of_buffer_for_compressed; // used for compressed formats
     int32 horizontal_resolution_px_per_m;
@@ -551,7 +560,7 @@ ReadLoadedBmp(FileReadResult bmp_file, MemoryArena * memory_arena)
 
     uint32 bitmap_height;
     uint32 bitmap_width;
-    uint32 bits_per_color;
+    uint32 bits_per_pixel;
 
     uint32 bitmap_header_size = *((uint32 *) (bmp_file_base_pointer + sizeof(BmpFileHeader)));
     if (bitmap_header_size == 40)
@@ -559,7 +568,7 @@ ReadLoadedBmp(FileReadResult bmp_file, MemoryArena * memory_arena)
         BmpBitmapV1Header bmp_bitmap_v1_header = *((BmpBitmapV1Header *) (bmp_file_base_pointer + sizeof(BmpFileHeader)));
         bitmap_height = bmp_bitmap_v1_header.bitmap_height;
         bitmap_width = bmp_bitmap_v1_header.bitmap_width;
-        bits_per_color = bmp_bitmap_v1_header.bits_per_color;
+        bits_per_pixel = bmp_bitmap_v1_header.bits_per_pixel;
     } else if (bitmap_header_size == 124)
     {
         BmpBitmapV5Header bmp_bitmap_v5_header = *((BmpBitmapV5Header *) (bmp_file_base_pointer + sizeof(BmpFileHeader)));
@@ -567,7 +576,7 @@ ReadLoadedBmp(FileReadResult bmp_file, MemoryArena * memory_arena)
         uint32 size_of_header_as_defined = sizeof(BmpBitmapV5Header);
         bitmap_height = bmp_bitmap_v5_header.bitmap_height;
         bitmap_width = bmp_bitmap_v5_header.bitmap_width;
-        bits_per_color = bmp_bitmap_v5_header.bits_per_color;
+        bits_per_pixel = bmp_bitmap_v5_header.bits_per_pixel;
 
         // verifiyng our assumptions about the format
         // if any of these fails we need to write different interpretation code of the bytes
@@ -590,24 +599,22 @@ ReadLoadedBmp(FileReadResult bmp_file, MemoryArena * memory_arena)
     Bitmap * return_bitmap = (Bitmap *) GetMemoryFromArena(sizeof(Bitmap), memory_arena);
     return_bitmap->width = bitmap_width;
     return_bitmap->height = bitmap_height;
-    return_bitmap->bits = (uint32 *) GetMemoryFromArena(bits_per_color * bitmap_width * bitmap_height, memory_arena);
+    return_bitmap->bits = (uint32 *) GetMemoryFromArena(bits_per_pixel * bitmap_width * bitmap_height, memory_arena);
 
     uint32 * src = (uint32 *) (bmp_file_base_pointer + bmp_file_header.offset_to_bits);
     uint32 * dest = (uint32 *) (return_bitmap->bits + bitmap_width * (bitmap_height - 1));
     uint32 * src_px;
     uint32 * dest_px;
 
+    // TODO: bad naming, row_index, column_index relative to what? it is relative to the displacement
+    // from the start of the data in the source bitmap, which corresponds iterating bottom-up, left-to-right
+    // but it is not evident. I implement parsing of a font with different names
     for (uint32 row_index = 0; row_index < bitmap_height; ++row_index)
     {
         uint32 * src_row = src + row_index * bitmap_width;
         uint32 * dest_row = dest - row_index * bitmap_width;
         for (uint32 column_index = 0; column_index < bitmap_width; ++column_index)
         {
-
-            // debug
-            if (row_index == 50 && column_index == 24) {
-                int b = 1;
-            }
             src_px = src_row + column_index;
             dest_px = dest_row + column_index;
             *dest_px = *src_px;
@@ -617,6 +624,7 @@ ReadLoadedBmp(FileReadResult bmp_file, MemoryArena * memory_arena)
     return return_bitmap;
 }
 
+#pragma pack(1)
 struct TableRecord
 {
     char table_tag[4];
@@ -625,21 +633,468 @@ struct TableRecord
     uint32 length;
 };
 
-struct FontDirectory
+
+#pragma pack(1)
+struct TableDirectory
 {
     uint32 sfnt_version;
     uint16 num_tables;
     uint16 search_range;
     uint16 entry_selector;
     uint16 range_shift;
-    TableRecord * table_records;
+    //TableRecord * table_records;
 };
 
-internal void
-ParseFontFile(void * font_data, uint32 data_num_bytes)
+#pragma pack(1)
+struct FontHeaderTable
 {
+    uint16 major_version;
+    uint16 minor_version;
+    uint32 font_revision;
+    uint32 checksum_adjustment;
+    uint32 magic_number;
+    uint16 flags;
+    uint16 units_per_em;
+    int64 created;
+    int64 modified;
+    int16 x_min;
+    int16 y_min;
+    int16 x_max;
+    int16 y_max;
+    uint16 mac_style;
+    uint16 smallest_readable_size_px;
+    int16 font_direction_hint;
+    int16 index_to_loc_format;
+    int16 glyph_data_format;
+};
 
-    return;
+#pragma pack(1)
+struct EBDTTableHeader
+{
+    uint16 major_version;
+    uint16 minor_version;
+};
+
+#pragma pack(1)
+struct EBLCTableHeader
+{
+    uint16 major_version;
+    uint16 minor_version;
+    uint32 num_sizes;
+};
+
+#pragma pack(1)
+struct SbitLineMetricsRecord
+{
+    int8 ascender;
+    int8 descender;
+    uint8 width_max;
+    int8 caret_slope_numerator;
+    int8 caret_slope_denominator;
+    int8 caret_offset;
+    int8 min_origin_sb;
+    int8 min_advance_sb;
+    int8 max_before_bl;
+    int8 min_after_bl;
+    int8 pad1;
+    int8 pad2;
+};
+
+#pragma pack(1)
+struct BitmapSizeRecord
+{
+    uint32 index_subtable_array_offset;
+    uint32 index_tables_size;
+    uint32 number_of_index_subtables;
+    uint32 color_ref;
+    SbitLineMetricsRecord hori;
+    SbitLineMetricsRecord vert;
+    uint16 start_glyph_index;
+    uint16 end_glyph_index;
+    uint8 ppem_x;
+    uint8 ppem_y;
+    uint8 bit_depth;
+    int8 flags;
+};
+
+#pragma pack(1)
+struct IndexSubTableArrayEntry
+{
+    uint16 first_glyph_index;
+    uint16 last_glyph_index;
+    uint32 additional_offset_to_index_subtable;
+};
+
+#pragma pack(1)
+struct IndexSubTableHeader
+{
+    uint16 index_format;
+    uint16 image_format;
+    uint32 offset_to_after_the_header_in_ebdt;
+};
+
+#pragma pack(1)
+struct BigGlyphMetrics
+{
+    uint8 height;
+    uint8 width;
+    int8 hori_bearing_x;
+    int8 hori_bearing_y;
+    uint8 hori_advance;
+    int8 vert_bearing_x;
+    int8 vert_bearing_y;
+    uint8 vert_advance;
+};
+
+#pragma pack(1)
+struct SmallGlyphMetrics
+{
+    uint8 height;
+    uint8 width;
+    int8 bearing_x;
+    int8 bearing_y;
+    uint8 advance;
+};
+
+// #pragma pack(1)
+// struct IndexSubTableFormat2
+// {
+//     IndexSubTableHeader index_subtable_header;
+//     uint32 image_size;
+//     BigGlyphMetrics big_metrics;
+// };
+
+bool32 StringsPrefixesEqual(char * str1, char * str2, size_t prefix_len)
+{
+    int index=0;
+    while (str1[index] == str2[index] && index < prefix_len)
+    {
+        ++index;
+    }
+    if(index == prefix_len)
+    {
+        return true;
+    } else
+    {
+        return false;
+    }
+}
+
+internal int32
+CalculateChecksum(uint8 * base_pointer, size_t length)
+{
+    uint32 checksum_calculated = 0;
+    size_t byte_index=0;
+    for (; byte_index < length; byte_index+=4)
+    {
+        if (byte_index + 4 <= length)
+        {
+            uint32 cur_addend = *((uint32 *)(base_pointer + byte_index));
+            INVERT_BYTE_ORDER(cur_addend);
+            checksum_calculated += cur_addend;
+        }
+    }
+
+
+    if (byte_index != length)
+    {
+        byte_index -= 4;
+        uint32 last_addend = 0;
+        for (; byte_index < length; ++byte_index)
+        {
+            last_addend = (last_addend << 8) | (*((uint8 *)(base_pointer + byte_index)));
+            last_addend = (*((uint8 *)(base_pointer + byte_index)));
+        }
+        last_addend <<= 8 * (4 - length%4);
+        checksum_calculated += last_addend;
+    }
+    return checksum_calculated;
+}
+
+
+
+// legal values for sfnt_version are: 0x00010000 for TrueType outlines, 'ttcf' - for ;'otto' - for Compact Font Format (CFF) data
+// currently supportin only the first one
+internal ParseFontFileResult 
+ParseFontFile(FileReadResult font_file, MemoryArena * memory_arena)
+{
+    ParseFontFileResult parse_font_file_result = {};
+    uint8 * base_pointer = font_file.start_pointer;
+
+    uint32 first_4bytes = *((uint32 *) base_pointer);
+    INVERT_BYTE_ORDER(first_4bytes);
+    uint32 k_true_type_outlines_sfnt_version = 0x00010000;
+    ASSERT(first_4bytes == k_true_type_outlines_sfnt_version);
+
+    TableDirectory table_directory = *((TableDirectory *) base_pointer);
+    INVERT_BYTE_ORDER(table_directory.sfnt_version);
+    INVERT_BYTE_ORDER(table_directory.num_tables);
+    INVERT_BYTE_ORDER(table_directory.search_range);
+    INVERT_BYTE_ORDER(table_directory.entry_selector);
+    INVERT_BYTE_ORDER(table_directory.range_shift);
+
+    uint8 * ebdt_table_pointer = 0;
+
+    uint32 font_head_checksum_adjustment = 0;
+    for (int table_index=0; table_index<table_directory.num_tables; ++table_index)
+    {
+
+        TableRecord * cur_table_record_pointer = (TableRecord *) (base_pointer + sizeof(TableDirectory) + table_index * sizeof(TableRecord));
+        TableRecord cur_table_record = *cur_table_record_pointer;
+        INVERT_BYTE_ORDER(cur_table_record.checksum);
+        INVERT_BYTE_ORDER(cur_table_record.offset);
+        INVERT_BYTE_ORDER(cur_table_record.length);
+
+        uint8 * table_pointer = base_pointer + cur_table_record.offset;
+        uint32 checksum_calculated = CalculateChecksum(table_pointer, cur_table_record.length);
+
+
+        if (StringsPrefixesEqual(cur_table_record.table_tag, "head", 4))
+        {
+            FontHeaderTable font_header_table = *((FontHeaderTable *) table_pointer);
+            INVERT_BYTE_ORDER(font_header_table.major_version);
+            INVERT_BYTE_ORDER(font_header_table.minor_version);
+            INVERT_BYTE_ORDER(font_header_table.font_revision);
+            INVERT_BYTE_ORDER(font_header_table.checksum_adjustment);
+            INVERT_BYTE_ORDER(font_header_table.magic_number);
+            INVERT_BYTE_ORDER(font_header_table.flags);
+            INVERT_BYTE_ORDER(font_header_table.units_per_em);
+            INVERT_BYTE_ORDER(font_header_table.created);
+            INVERT_BYTE_ORDER(font_header_table.modified);
+            INVERT_BYTE_ORDER(font_header_table.x_min);
+            INVERT_BYTE_ORDER(font_header_table.y_min);
+            INVERT_BYTE_ORDER(font_header_table.x_max);
+            INVERT_BYTE_ORDER(font_header_table.y_max);
+            INVERT_BYTE_ORDER(font_header_table.mac_style);
+            INVERT_BYTE_ORDER(font_header_table.smallest_readable_size_px);
+            INVERT_BYTE_ORDER(font_header_table.font_direction_hint);
+            INVERT_BYTE_ORDER(font_header_table.index_to_loc_format);
+            INVERT_BYTE_ORDER(font_header_table.glyph_data_format);
+
+            checksum_calculated -= font_header_table.checksum_adjustment;
+            font_head_checksum_adjustment = font_header_table.checksum_adjustment;
+        } else if (StringsPrefixesEqual(cur_table_record.table_tag, "EBDT", 4))
+        {
+            ebdt_table_pointer = table_pointer;
+            EBDTTableHeader ebdt_table_header = *((EBDTTableHeader *) table_pointer);
+            INVERT_BYTE_ORDER(ebdt_table_header.major_version);
+            INVERT_BYTE_ORDER(ebdt_table_header.minor_version);
+
+
+        } else if (StringsPrefixesEqual(cur_table_record.table_tag, "EBLC", 4))
+        {
+            EBLCTableHeader eblc_table_header = *((EBLCTableHeader *) table_pointer);
+            INVERT_BYTE_ORDER(eblc_table_header.major_version);
+            INVERT_BYTE_ORDER(eblc_table_header.minor_version);
+            INVERT_BYTE_ORDER(eblc_table_header.num_sizes);
+            ASSERT(eblc_table_header.num_sizes == 1);
+            for (size_t strike_index=0; strike_index<eblc_table_header.num_sizes; ++strike_index)
+            {
+                BitmapSizeRecord cur_bitmap_size_record = *((BitmapSizeRecord *) (table_pointer + sizeof(EBLCTableHeader) + strike_index*sizeof(BitmapSizeRecord)));
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.index_subtable_array_offset);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.index_tables_size);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.number_of_index_subtables);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.color_ref);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.start_glyph_index);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.end_glyph_index);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.ppem_x);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.ppem_y);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.bit_depth);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.flags);
+
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.ascender);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.descender);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.width_max);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.caret_slope_numerator);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.caret_slope_denominator);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.caret_offset);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.min_origin_sb);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.min_advance_sb);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.max_before_bl);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.min_after_bl);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.pad1);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.hori.pad2);
+
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.ascender);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.descender);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.width_max);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.caret_slope_numerator);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.caret_slope_denominator);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.caret_offset);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.min_origin_sb);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.min_advance_sb);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.max_before_bl);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.min_after_bl);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.pad1);
+                INVERT_BYTE_ORDER(cur_bitmap_size_record.vert.pad2);
+
+
+                int8 HORIZONTAL_METRICS = 0x01;
+                ASSERT(cur_bitmap_size_record.flags == HORIZONTAL_METRICS);
+                ASSERT(cur_bitmap_size_record.bit_depth == 1);
+
+                uint32 number_of_glyphs_in_strike = cur_bitmap_size_record.end_glyph_index - cur_bitmap_size_record.start_glyph_index + 1;
+                ASSERT(parse_font_file_result.glyphs_bitmaps_pointers_array == 0);
+                parse_font_file_result.glyphs_bitmaps_pointers_array = (Bitmap **) GetMemoryFromArena(sizeof(Bitmap *) * number_of_glyphs_in_strike, memory_arena);
+                parse_font_file_result.number_of_glyphs = 0;
+
+                for (size_t range_subtable_index=0; range_subtable_index<cur_bitmap_size_record.number_of_index_subtables;++range_subtable_index)
+                {
+                    IndexSubTableArrayEntry cur_index_subtable_array_entry = *((IndexSubTableArrayEntry *) (table_pointer + cur_bitmap_size_record.index_subtable_array_offset + range_subtable_index*sizeof(IndexSubTableArrayEntry) ));
+                    INVERT_BYTE_ORDER(cur_index_subtable_array_entry.first_glyph_index);
+                    INVERT_BYTE_ORDER(cur_index_subtable_array_entry.last_glyph_index);
+                    INVERT_BYTE_ORDER(cur_index_subtable_array_entry.additional_offset_to_index_subtable);
+
+
+                    IndexSubTableHeader cur_index_subtable_header = *((IndexSubTableHeader *) (table_pointer + cur_bitmap_size_record.index_subtable_array_offset + cur_index_subtable_array_entry.additional_offset_to_index_subtable));
+
+                    INVERT_BYTE_ORDER(cur_index_subtable_header.index_format);
+                    INVERT_BYTE_ORDER(cur_index_subtable_header.image_format);
+                    INVERT_BYTE_ORDER(cur_index_subtable_header.offset_to_after_the_header_in_ebdt);
+
+
+                    SmallGlyphMetrics cur_glyph_metrics;
+                    uint32 glyph_image_size;
+
+                    uint32 * eblc_subtable_format1_glyph_data_offsets_array_pointer = 0;
+
+                    if (cur_index_subtable_header.index_format==1)
+                    {
+                        eblc_subtable_format1_glyph_data_offsets_array_pointer = (uint32 *) (table_pointer + cur_bitmap_size_record.index_subtable_array_offset + cur_index_subtable_array_entry.additional_offset_to_index_subtable + sizeof(IndexSubTableHeader));
+
+                    } else if (cur_index_subtable_header.index_format==2)
+                    {
+                        // exploiting the layout of format 2 index subtable
+                        glyph_image_size = *((uint32 *) (table_pointer + cur_bitmap_size_record.index_subtable_array_offset + cur_index_subtable_array_entry.additional_offset_to_index_subtable + sizeof(IndexSubTableHeader)));
+                        BigGlyphMetrics big_glyph_metrics = *((BigGlyphMetrics *) (table_pointer + cur_bitmap_size_record.index_subtable_array_offset + cur_index_subtable_array_entry.additional_offset_to_index_subtable + sizeof(IndexSubTableHeader) + sizeof(uint32)));
+
+                        INVERT_BYTE_ORDER(glyph_image_size);
+                        INVERT_BYTE_ORDER(big_glyph_metrics.height);
+                        INVERT_BYTE_ORDER(big_glyph_metrics.width);
+                        INVERT_BYTE_ORDER(big_glyph_metrics.hori_bearing_x);
+                        INVERT_BYTE_ORDER(big_glyph_metrics.hori_bearing_y);
+                        INVERT_BYTE_ORDER(big_glyph_metrics.hori_advance);
+
+                        cur_glyph_metrics.height = big_glyph_metrics.height;
+                        cur_glyph_metrics.width = big_glyph_metrics.width;
+                        cur_glyph_metrics.bearing_x = big_glyph_metrics.hori_bearing_x;
+                        cur_glyph_metrics.bearing_y = big_glyph_metrics.hori_bearing_y;
+                        cur_glyph_metrics.advance = big_glyph_metrics.hori_advance;
+
+                    } else
+                    {
+                        // subtable format not implemented
+                        ASSERT(0);
+                    }
+
+                    for (size_t strike_glyph_index=cur_index_subtable_array_entry.first_glyph_index, subtable_glyph_index=0; strike_glyph_index<= cur_index_subtable_array_entry.last_glyph_index; ++strike_glyph_index, ++subtable_glyph_index)
+                    {
+
+                        // TODO: stopped on iterating through glyph index subtables
+                        // the question of need completeness and exaustiveness of understanding of every
+                        // details and every byte of layout of these two tables is an open question still
+                        //
+                        ASSERT(ebdt_table_pointer != 0);
+                        ASSERT(strike_glyph_index < number_of_glyphs_in_strike);
+                        uint8 * glyph_ebdt_data_pointer = ebdt_table_pointer + cur_index_subtable_header.offset_to_after_the_header_in_ebdt; 
+                        size_t glyph_ebdt_data_size;
+
+                        if (cur_index_subtable_header.index_format==1)
+                        {
+                            ASSERT(eblc_subtable_format1_glyph_data_offsets_array_pointer);
+                            uint32 offset_into_ebdt_glyph_data = *(eblc_subtable_format1_glyph_data_offsets_array_pointer + subtable_glyph_index);
+                            uint32 offset_into_ebdt_glyph_data_for_next_glyph = *(eblc_subtable_format1_glyph_data_offsets_array_pointer + subtable_glyph_index + 1);
+                            INVERT_BYTE_ORDER(offset_into_ebdt_glyph_data);
+                            INVERT_BYTE_ORDER(offset_into_ebdt_glyph_data_for_next_glyph);
+
+                            glyph_ebdt_data_size = offset_into_ebdt_glyph_data_for_next_glyph - offset_into_ebdt_glyph_data;
+
+                            glyph_ebdt_data_pointer += offset_into_ebdt_glyph_data;
+
+                            if (cur_index_subtable_header.image_format == 2)
+                            {
+                                cur_glyph_metrics = *((SmallGlyphMetrics * ) glyph_ebdt_data_pointer);
+
+                                INVERT_BYTE_ORDER(cur_glyph_metrics.height);
+                                INVERT_BYTE_ORDER(cur_glyph_metrics.width);
+                                INVERT_BYTE_ORDER(cur_glyph_metrics.bearing_x);
+                                INVERT_BYTE_ORDER(cur_glyph_metrics.bearing_y);
+                                INVERT_BYTE_ORDER(cur_glyph_metrics.advance);
+
+                                Bitmap * glyph_bitmap = (Bitmap *) GetMemoryFromArena(sizeof(Bitmap), memory_arena);
+                                glyph_bitmap->width = cur_glyph_metrics.width;
+                                glyph_bitmap->height = cur_glyph_metrics.height;
+
+                                // current bitmap renderer assumes 32 bit per pixelformat
+                                uint32 bits_per_pixel = 32;
+                                glyph_bitmap->bits = (uint32 *) GetMemoryFromArena(bits_per_pixel * glyph_bitmap->width * glyph_bitmap->height, memory_arena);
+
+                                *(parse_font_file_result.glyphs_bitmaps_pointers_array + parse_font_file_result.number_of_glyphs++) = glyph_bitmap;
+
+                                // row_index assumes top-down view of the source bitmap data embedded into font,
+                               //  column_index - left-to-right
+
+                                uint8 * glyph_image_data_pointer = glyph_ebdt_data_pointer + sizeof(SmallGlyphMetrics);
+                                uint32 * dest_pixel_pointer = glyph_bitmap->bits;
+                                for (uint32 row_index = 0; row_index <  glyph_bitmap->height; ++row_index)
+                                {
+                                    for (uint32 column_index = 0; column_index < glyph_bitmap->width; ++column_index)
+                                    {
+                                        uint8 flat_index_of_source_byte = (row_index * (glyph_bitmap->width) + column_index) / 8;
+                                        uint8 source_byte = (*glyph_image_data_pointer + flat_index_of_source_byte);
+                                        uint8 wanted_bit_extracted = (source_byte >> (7 - (flat_index_of_source_byte % 8))) & 0x01;
+                                        if (wanted_bit_extracted == 0x01)
+                                        {
+                                            *dest_pixel_pointer = 0x00000000;
+                                        } else if (wanted_bit_extracted == 0x00)
+                                        {
+                                            *dest_pixel_pointer = 0xFFFFFFFF;
+                                        } else
+                                        {
+                                            // unexpected
+                                            ASSERT(0);
+                                        }
+                                        ++dest_pixel_pointer;
+                                    }
+                                }
+                            } else 
+                            {
+                                //not implemented
+                                //ASSERT(0);
+                            }
+
+                        } else if (cur_index_subtable_header.index_format==2)
+                        {
+                            glyph_ebdt_data_size = glyph_image_size;
+
+                            glyph_ebdt_data_pointer += glyph_image_size * subtable_glyph_index;
+                        } else
+                        {
+                            // not implemented
+                            ASSERT(0);
+                        }
+                    } 
+                }
+            }
+        } else
+        {
+        }
+        ASSERT(checksum_calculated == cur_table_record.checksum);
+    }
+
+    uint32 entire_font_checksum = CalculateChecksum(base_pointer, font_file.file_size); 
+    ASSERT(entire_font_checksum == 0xB1B0AFBA);
+    return parse_font_file_result;
+}
+
+internal void
+RenderFontPreview(BitmapOutputBuffer * bitmap_output_buffer)
+{
+    for (size_t glyph_index=0; glyph_index < g_GlobalState->font.number_of_glyphs; ++glyph_index)
+    {
+        Bitmap * cur_glyph_eitmap_pointer = *(g_GlobalState->font.glyphs_bitmaps_pointers_array) + glyph_index;
+        DrawBitmap(cur_glyph_eitmap_pointer, bitmap_output_buffer, g_GlobalState->camera_center.x + glyph_index * 0.5, g_GlobalState->camera_center.y);
+    }
 }
 
 extern "C"
@@ -675,9 +1130,14 @@ UpdateStateAndRender(GameMemory * game_memory,
         memory_distributed += dynamic_storage_arena_size;
 
         FileReadResult man_bmp_file = platform_procedures->ReadFileIntoMemory("D:\\c_proj\\assets\\develop\\man\\man2.bmp");
-        
         g_GlobalState->man_bitmap = ReadLoadedBmp(man_bmp_file, &game_memory->dynamic_storage_arena);
         platform_procedures->FreeFileReadResultFromMemory(man_bmp_file);
+
+
+        FileReadResult cozette_font_file = platform_procedures->ReadFileIntoMemory("D:\\c_proj\\assets\\cozette_bitmap.ttf");
+        g_GlobalState->font = ParseFontFile(cozette_font_file, &game_memory->dynamic_storage_arena);
+        platform_procedures->FreeFileReadResultFromMemory(cozette_font_file);
+
 
         //TODO: for file sizes and memory sizes use portable data type size_t
         //TODO: implement freeing memory after reading file and parsing it. Need function Free Memory in win32 layer that will be passed
@@ -761,6 +1221,7 @@ UpdateStateAndRender(GameMemory * game_memory,
     RenderEntity(bitmap_output_buffer);
     RenderRightButtonClick(bitmap_output_buffer);
     RenderMouseSelection(bitmap_output_buffer);
+    RenderFontPreview(bitmap_output_buffer);
     //RenderBitmap2(g_GlobalState->man_bitmap, bitmap_output_buffer, 0.0f, 0.0f);
 }
 

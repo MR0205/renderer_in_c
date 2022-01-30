@@ -28,6 +28,23 @@
 #define GIGABYTE (1024 * MEGABYTE)
 
 
+internal void
+InvertByteOrder(uint8 * variable_pointer, size_t size_of_variable)
+{
+    uint8 temp;
+    uint8 * forward_pointer = variable_pointer;
+    uint8 * backward_pointer = forward_pointer + size_of_variable - 1;
+    for (size_t i=0; i < (size_of_variable / 2); ++i)
+    {
+        temp = *forward_pointer;
+        *forward_pointer = *backward_pointer;
+        *backward_pointer = temp;
+        ++forward_pointer;
+        --backward_pointer;
+    }
+}
+
+#define INVERT_BYTE_ORDER(var) InvertByteOrder((uint8 *) &var, sizeof(var))
 
 #define MACRO_DEFINITIONS_H
 #endif
