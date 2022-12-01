@@ -1,0 +1,345 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ASSERT	macro_definitions.h	6;"	d
+BITMAP_H	bitmap.h	10;"	d
+BMP_PARSER_H	bmp_parser.h	129;"	d
+BigGlyphMetrics	opentype.h	/^struct BigGlyphMetrics$/;"	s
+Bitmap	bitmap.h	/^struct Bitmap$/;"	s
+BitmapOutputBuffer	platform.h	/^struct BitmapOutputBuffer$/;"	s
+BitmapSizeRecord	opentype.h	/^struct BitmapSizeRecord$/;"	s
+BmpBitmapV1Header	bmp_parser.h	/^struct BmpBitmapV1Header$/;"	s
+BmpBitmapV5Header	bmp_parser.h	/^struct BmpBitmapV5Header$/;"	s
+BmpFileHeader	bmp_parser.h	/^struct BmpFileHeader$/;"	s
+CalculateChecksum	opentype.h	/^CalculateChecksum(uint8 * base_pointer, size_t length)$/;"	f
+CmapTableHeader	opentype.h	/^struct CmapTableHeader$/;"	s
+ControlInput	platform.h	/^struct ControlInput$/;"	s
+DEBUGPrintControlInputArray	win32_main.cpp	/^DEBUGPrintControlInputArray(ControlInput * control_input)$/;"	f
+DOWN_KEY	platform.h	/^    DOWN_KEY,\/\/=VK_DOWN,$/;"	e	enum:KeyboardKey
+DrawBitmap	engine.cpp	/^DrawBitmap(Bitmap * bitmap, BitmapOutputBuffer * bitmap_output_buffer, real32 center_x_real, real32 center_y_real)$/;"	f
+DrawBitmapAtScreenCoords	engine.cpp	/^DrawBitmapAtScreenCoords(Bitmap * bitmap, BitmapOutputBuffer * bitmap_output_buffer, uint32 top_left_x, uint32 top_left_y)$/;"	f
+DrawRectangle	engine.cpp	/^DrawRectangle(BitmapOutputBuffer * bitmap_output_buffer,$/;"	f
+EBDTTableHeader	opentype.h	/^struct EBDTTableHeader$/;"	s
+EBLCTableHeader	opentype.h	/^struct EBLCTableHeader$/;"	s
+EncodingRecord	opentype.h	/^struct EncodingRecord$/;"	s
+EngineDll	win32_main.cpp	/^struct EngineDll$/;"	s	file:
+Entity	tilemap.h	/^struct Entity$/;"	s
+EntityType	tilemap.h	/^enum EntityType$/;"	g
+ExtractGlyphsFromEBDTUsingEBLCTable	opentype.h	/^ExtractGlyphsFromEBDTUsingEBLCTable(GlyphsIds glyphs_ids, uint8 * eblc_table_pointer, uint8 * ebdt_table_pointer, MemoryArena * memory_arena)$/;"	f
+FileReadResult	platform.h	/^struct FileReadResult$/;"	s
+FontHeaderTable	opentype.h	/^struct FontHeaderTable$/;"	s
+Format4EncodingSubtable	opentype.h	/^struct Format4EncodingSubtable $/;"	s
+Format4EncodingSubtableSegment	opentype.h	/^struct Format4EncodingSubtableSegment$/;"	s
+FreeFileReadResultFromMemory	platform.h	/^    bool32 (*FreeFileReadResultFromMemory) (FileReadResult file_read_result);$/;"	m	struct:PlatformProcedures
+FreeFileReadResultFromMemory	win32_main.cpp	/^bool32 FreeFileReadResultFromMemory(FileReadResult file_read_result)$/;"	f
+GAME_SCREEN_HEIGHT_PX	win32_main.cpp	24;"	d	file:
+GAME_SCREEN_PADDING_X	win32_main.cpp	26;"	d	file:
+GAME_SCREEN_PADDING_Y	win32_main.cpp	27;"	d	file:
+GAME_SCREEN_WIDTH_PX	win32_main.cpp	23;"	d	file:
+GIGABYTE	macro_definitions.h	28;"	d
+GameMemory	platform.h	/^struct GameMemory$/;"	s
+GetChecksumAdjustmentFromHeadTable	opentype.h	/^GetChecksumAdjustmentFromHeadTable(uint8 * table_pointer)$/;"	f
+GetEngineDllWriteFileTime	win32_main.cpp	/^GetEngineDllWriteFileTime(FILETIME * dll_file_write_time)$/;"	f
+GetGlyphIdsFromCmapTable	opentype.h	/^GetGlyphIdsFromCmapTable(uint8 * cmap_table_pointer, UnicodeRange unicode_range, MemoryArena * memory_arena)$/;"	f
+GetKeyboardKey	win32_main.cpp	/^GetKeyboardKey(WPARAM vk_code)$/;"	f
+GetMemoryFromArena	platform.h	/^GetMemoryFromArena(uint32 bytes_requested, MemoryArena * memory_arena)$/;"	f
+GetMouseEventType	win32_main.cpp	/^GetMouseEventType(UINT message)$/;"	f
+GetWorldCoordinatesFromGameScreenCoordinates	engine.cpp	/^GetWorldCoordinatesFromGameScreenCoordinates(BitmapOutputBuffer * bitmap_output_buffer, $/;"	f
+GlobalState	engine.cpp	/^struct GlobalState$/;"	s	file:
+Glyphs	opentype.h	/^struct Glyphs$/;"	s
+GlyphsIds	opentype.h	/^struct GlyphsIds$/;"	s
+INVERT_BYTE_ORDER	macro_definitions.h	47;"	d
+IndexSubTableArrayEntry	opentype.h	/^struct IndexSubTableArrayEntry$/;"	s
+IndexSubTableHeader	opentype.h	/^struct IndexSubTableHeader$/;"	s
+InvertByteOrder	macro_definitions.h	/^InvertByteOrder(uint8 * variable_pointer, size_t size_of_variable)$/;"	f
+InvertByteOrderInBitmapSizeRecord	opentype.h	/^InvertByteOrderInBitmapSizeRecord(BitmapSizeRecord * bitmap_size_record)$/;"	f
+KEYBOARD_KEY_SIZE	platform.h	/^    KEYBOARD_KEY_SIZE,$/;"	e	enum:KeyboardKey
+KILOBYTE	macro_definitions.h	26;"	d
+KeyboardKey	platform.h	/^enum KeyboardKey $/;"	g
+LEFT_BUTTON_PRESSED	platform.h	/^    LEFT_BUTTON_PRESSED,$/;"	e	enum:MouseEventType
+LEFT_BUTTON_RELEASED	platform.h	/^    LEFT_BUTTON_RELEASED,$/;"	e	enum:MouseEventType
+LEFT_KEY	platform.h	/^    LEFT_KEY,\/\/=VK_LEFT,$/;"	e	enum:KeyboardKey
+LoadEngineDll	win32_main.cpp	/^LoadEngineDll(EngineDll * engine_dll)$/;"	f
+MACRO_DEFINITIONS_H	macro_definitions.h	49;"	d
+MATH_H	math.h	2;"	d
+MEGABYTE	macro_definitions.h	27;"	d
+MOUSE_EVENT_TYPE_SIZE	platform.h	/^    MOUSE_EVENT_TYPE_SIZE,$/;"	e	enum:MouseEventType
+MemoryArena	platform.h	/^struct MemoryArena$/;"	s
+MouseEvent	platform.h	/^struct MouseEvent $/;"	s
+MouseEventType	platform.h	/^enum MouseEventType$/;"	g
+NO_MOUSE_BUTTON_EVENT	platform.h	/^    NO_MOUSE_BUTTON_EVENT,$/;"	e	enum:MouseEventType
+OPENTYPE_H	opentype.h	966;"	d
+PLATFORM_H	platform.h	108;"	d
+ParseFontFile	opentype.h	/^ParseFontFile(FileReadResult font_file, MemoryArena * memory_arena)$/;"	f
+PlatformProcedures	platform.h	/^struct PlatformProcedures$/;"	s
+ProcessControlInput	engine.cpp	/^ProcessControlInput(ControlInput * control_input,$/;"	f
+RIGHT_BUTTON_PRESSED	platform.h	/^    RIGHT_BUTTON_PRESSED,$/;"	e	enum:MouseEventType
+RIGHT_BUTTON_RELEASED	platform.h	/^    RIGHT_BUTTON_RELEASED,$/;"	e	enum:MouseEventType
+RIGHT_KEY	platform.h	/^    RIGHT_KEY,\/\/=VK_RIGHT,$/;"	e	enum:KeyboardKey
+ReadEBDTTableHeader	opentype.h	/^ReadEBDTTableHeader(uint8 * ebdt_table_pointer)$/;"	f
+ReadFileIntoMemory	platform.h	/^    FileReadResult (*ReadFileIntoMemory) (char * file_path);$/;"	m	struct:PlatformProcedures
+ReadFileIntoMemory	win32_main.cpp	/^FileReadResult ReadFileIntoMemory(char * file_path)$/;"	f
+ReadLoadedBmp	bmp_parser.h	/^ReadLoadedBmp(FileReadResult bmp_file, MemoryArena * memory_arena)$/;"	f
+RenderEntity	engine.cpp	/^RenderEntity(BitmapOutputBuffer * bitmap_output_buffer)$/;"	f
+RenderFontPreview	engine.cpp	/^RenderFontPreview(BitmapOutputBuffer * bitmap_output_buffer)$/;"	f
+RenderMouseSelection	engine.cpp	/^RenderMouseSelection(BitmapOutputBuffer * bitmap_output_buffer)$/;"	f
+RenderRightButtonClick	engine.cpp	/^RenderRightButtonClick(BitmapOutputBuffer * bitmap_output_buffer)$/;"	f
+RenderText	engine.cpp	/^RenderText(char text[], BitmapOutputBuffer * bitmap_output_buffer, uint32 pen_start_pos_x, uint32 pen_start_pos_y)$/;"	f
+RenderTileMap	engine.cpp	/^RenderTileMap(BitmapOutputBuffer * bitmap_output_buffer)$/;"	f
+RestrictCursor	win32_main.cpp	/^RestrictCursor(HWND hwnd)$/;"	f
+RoundReal32ToInt32	math.h	/^RoundReal32ToInt32(real32 val)$/;"	f
+SbitLineMetricsRecord	opentype.h	/^struct SbitLineMetricsRecord$/;"	s
+SimulateTimeStep	engine.cpp	/^SimulateTimeStep()$/;"	f
+SmallGlyphMetrics	opentype.h	/^struct SmallGlyphMetrics$/;"	s
+StringsPrefixesEqual	opentype.h	/^bool32 StringsPrefixesEqual(char * str1, char * str2, size_t prefix_len)$/;"	f
+TILEMAP_H	tilemap.h	45;"	d
+TTCHeader	opentype.h	/^struct TTCHeader$/;"	s
+TableDirectory	opentype.h	/^struct TableDirectory$/;"	s
+TableRecord	opentype.h	/^struct TableRecord$/;"	s
+TileMap	tilemap.h	/^struct TileMap$/;"	s
+UNICODE	win32_main.cpp	9;"	d	file:
+UP_KEY	platform.h	/^    UP_KEY,\/\/\/=VK_UP,$/;"	e	enum:KeyboardKey
+UnicodeRange	opentype.h	/^struct UnicodeRange$/;"	s
+UpdateStateAndRender	engine.cpp	/^UpdateStateAndRender(GameMemory * game_memory,$/;"	f
+UpdateStateAndRenderLoadedAddress	win32_main.cpp	/^    UpdateStateAndRenderPrototype UpdateStateAndRenderLoadedAddress;$/;"	m	struct:EngineDll	file:
+UpdateStateAndRenderPrototype	platform.h	/^typedef void (* UpdateStateAndRenderPrototype)(GameMemory *, BitmapOutputBuffer *, ControlInput *,$/;"	t
+WIN32_H	win32.h	7;"	d
+Win32CaptureInput	win32_main.cpp	/^Win32CaptureInput(MSG * msg, ControlInput * control_input)$/;"	f
+Win32CaptureKeyboardInput	win32_main.cpp	/^Win32CaptureKeyboardInput(MSG * msg, ControlInput * control_input)$/;"	f
+Win32CaptureMouseInput	win32_main.cpp	/^Win32CaptureMouseInput(MSG * msg, ControlInput * control_input)$/;"	f
+Win32CaptureMouseMove	win32_main.cpp	/^Win32CaptureMouseMove(MSG * msg, ControlInput * control_input)$/;"	f
+Win32CaptureMouseWheelInput	win32_main.cpp	/^Win32CaptureMouseWheelInput(MSG *msg, ControlInput * control_input)$/;"	f
+Win32WindowProc	win32_main.cpp	/^Win32WindowProc(HWND hwnd, UINT uMsg,$/;"	f
+WritingDllFinished	win32_main.cpp	/^bool32 WritingDllFinished()$/;"	f
+additional_offset_to_index_subtable	opentype.h	/^    uint32 additional_offset_to_index_subtable;$/;"	m	struct:IndexSubTableArrayEntry
+advance	opentype.h	/^    uint8 advance;$/;"	m	struct:SmallGlyphMetrics
+advance_x	opentype.h	/^    uint32 advance_x;$/;"	m	struct:Glyphs
+alpha_mask	bmp_parser.h	/^    uint32 alpha_mask;$/;"	m	struct:BmpBitmapV5Header
+ascender	opentype.h	/^    int8 ascender;$/;"	m	struct:SbitLineMetricsRecord
+bearing_x	opentype.h	/^    int8 bearing_x;$/;"	m	struct:SmallGlyphMetrics
+bearing_x	opentype.h	/^    uint32 bearing_x;$/;"	m	struct:Glyphs
+bearing_y	opentype.h	/^    int8 bearing_y;$/;"	m	struct:SmallGlyphMetrics
+bearing_y	opentype.h	/^    uint32 bearing_y;$/;"	m	struct:Glyphs
+bit_depth	opentype.h	/^    uint8 bit_depth;$/;"	m	struct:BitmapSizeRecord
+bitmap_height	bmp_parser.h	/^    int32 bitmap_height; \/\/ cant be negative$/;"	m	struct:BmpBitmapV1Header
+bitmap_height	bmp_parser.h	/^    int32 bitmap_height; \/\/ cant be negative$/;"	m	struct:BmpBitmapV5Header
+bitmap_width	bmp_parser.h	/^    int32 bitmap_width;$/;"	m	struct:BmpBitmapV1Header
+bitmap_width	bmp_parser.h	/^    int32 bitmap_width;$/;"	m	struct:BmpBitmapV5Header
+bitmaps	opentype.h	/^    Bitmap * bitmaps;$/;"	m	struct:Glyphs
+bits	bitmap.h	/^    uint32 * bits;$/;"	m	struct:Bitmap
+bits	platform.h	/^    uint32 * bits;$/;"	m	struct:BitmapOutputBuffer
+bits_per_pixel	bmp_parser.h	/^    uint16 bits_per_pixel;$/;"	m	struct:BmpBitmapV1Header
+bits_per_pixel	bmp_parser.h	/^    uint16 bits_per_pixel;$/;"	m	struct:BmpBitmapV5Header
+blue_mask	bmp_parser.h	/^    uint32 blue_mask;$/;"	m	struct:BmpBitmapV5Header
+bool32	macro_definitions.h	21;"	d
+camera_center	engine.cpp	/^    v2 camera_center;$/;"	m	struct:GlobalState	file:
+caret_offset	opentype.h	/^    int8 caret_offset;$/;"	m	struct:SbitLineMetricsRecord
+caret_slope_denominator	opentype.h	/^    int8 caret_slope_denominator;$/;"	m	struct:SbitLineMetricsRecord
+caret_slope_numerator	opentype.h	/^    int8 caret_slope_numerator;$/;"	m	struct:SbitLineMetricsRecord
+checksum	opentype.h	/^    uint32 checksum;$/;"	m	struct:TableRecord
+checksum_adjustment	opentype.h	/^    uint32 checksum_adjustment;$/;"	m	struct:FontHeaderTable
+color	tilemap.h	/^    uint32 color;$/;"	m	struct:Entity
+color_ref	opentype.h	/^    uint32 color_ref;$/;"	m	struct:BitmapSizeRecord
+compression	bmp_parser.h	/^    uint32 compression;$/;"	m	struct:BmpBitmapV1Header
+compression	bmp_parser.h	/^    uint32 compression;$/;"	m	struct:BmpBitmapV5Header
+consumed	platform.h	/^    size_t consumed;$/;"	m	struct:MemoryArena
+created	opentype.h	/^    int64 created;$/;"	m	struct:FontHeaderTable
+cursor_cur_x	engine.cpp	/^    real32 cursor_cur_x; \/\/ mouse_selection_max_x;$/;"	m	struct:GlobalState	file:
+cursor_cur_y	engine.cpp	/^    real32 cursor_cur_y; \/\/ mouse_selection_max_y;$/;"	m	struct:GlobalState	file:
+cursor_x	platform.h	/^    int32 cursor_x;$/;"	m	struct:ControlInput
+cursor_y	platform.h	/^    int32 cursor_y;$/;"	m	struct:ControlInput
+descender	opentype.h	/^    int8 descender;$/;"	m	struct:SbitLineMetricsRecord
+dimensions	tilemap.h	/^    v2 dimensions;$/;"	m	struct:Entity
+draw_mouse_selection	engine.cpp	/^    bool32 draw_mouse_selection;$/;"	m	struct:GlobalState	file:
+draw_right_button_click	engine.cpp	/^    bool32 draw_right_button_click;$/;"	m	struct:GlobalState	file:
+dynamic_storage_arena	platform.h	/^    MemoryArena dynamic_storage_arena;$/;"	m	struct:GameMemory
+empty_space0	bmp_parser.h	/^    uint16 empty_space0;$/;"	m	struct:BmpFileHeader
+empty_space1	bmp_parser.h	/^    uint16 empty_space1;$/;"	m	struct:BmpFileHeader
+encoding_id	opentype.h	/^    uint16 encoding_id;$/;"	m	struct:EncodingRecord
+end	opentype.h	/^    uint16 end = 0x7E;$/;"	m	struct:UnicodeRange
+end_code	opentype.h	/^    uint16 end_code;$/;"	m	struct:Format4EncodingSubtableSegment
+end_glyph_index	opentype.h	/^    uint16 end_glyph_index;$/;"	m	struct:BitmapSizeRecord
+entities	tilemap.h	/^    Entity * entities;$/;"	m	struct:TileMap
+entity_type	tilemap.h	/^    EntityType entity_type;$/;"	m	struct:Entity
+entry_selector	opentype.h	/^    uint16 entry_selector;$/;"	m	struct:Format4EncodingSubtable
+entry_selector	opentype.h	/^    uint16 entry_selector;$/;"	m	struct:TableDirectory
+file_size	bmp_parser.h	/^    uint32 file_size;$/;"	m	struct:BmpFileHeader
+file_size	platform.h	/^    size_t file_size;$/;"	m	struct:FileReadResult
+file_type	bmp_parser.h	/^    char file_type[2];$/;"	m	struct:BmpFileHeader
+first_byte	platform.h	/^    uint8 * first_byte;$/;"	m	struct:MemoryArena
+first_glyph_index	opentype.h	/^    uint16 first_glyph_index;$/;"	m	struct:IndexSubTableArrayEntry
+flags	opentype.h	/^    int8 flags;$/;"	m	struct:BitmapSizeRecord
+flags	opentype.h	/^    uint16 flags;$/;"	m	struct:FontHeaderTable
+font_direction_hint	opentype.h	/^    int16 font_direction_hint;$/;"	m	struct:FontHeaderTable
+font_revision	opentype.h	/^    uint32 font_revision;$/;"	m	struct:FontHeaderTable
+format	opentype.h	/^    uint16 format;$/;"	m	struct:Format4EncodingSubtable
+g_GlobalState	engine.cpp	/^} * g_GlobalState;$/;"	v	typeref:struct:GlobalState
+game_time_ms	engine.cpp	/^    real64 game_time_ms;$/;"	m	struct:GlobalState	file:
+glyph_data_format	opentype.h	/^    int16 glyph_data_format;$/;"	m	struct:FontHeaderTable
+glyphs	engine.cpp	/^    Glyphs glyphs;$/;"	m	struct:GlobalState	file:
+green_mask	bmp_parser.h	/^    uint32 green_mask;$/;"	m	struct:BmpBitmapV5Header
+handle	win32_main.cpp	/^    HMODULE handle;$/;"	m	struct:EngineDll	file:
+header_size	bmp_parser.h	/^    uint32 header_size;$/;"	m	struct:BmpBitmapV1Header
+header_size	bmp_parser.h	/^    uint32 header_size;$/;"	m	struct:BmpBitmapV5Header
+height	bitmap.h	/^    uint32 height;$/;"	m	struct:Bitmap
+height	opentype.h	/^    uint8 height;$/;"	m	struct:BigGlyphMetrics
+height	opentype.h	/^    uint8 height;$/;"	m	struct:SmallGlyphMetrics
+height	platform.h	/^    uint32 height;$/;"	m	struct:BitmapOutputBuffer
+hero	engine.cpp	/^    Entity hero;$/;"	m	struct:GlobalState	file:
+hero_entity_type	tilemap.h	/^    hero_entity_type,$/;"	e	enum:EntityType
+hori	opentype.h	/^    SbitLineMetricsRecord hori;$/;"	m	struct:BitmapSizeRecord
+hori_advance	opentype.h	/^    uint8 hori_advance;$/;"	m	struct:BigGlyphMetrics
+hori_bearing_x	opentype.h	/^    int8 hori_bearing_x;$/;"	m	struct:BigGlyphMetrics
+hori_bearing_y	opentype.h	/^    int8 hori_bearing_y;$/;"	m	struct:BigGlyphMetrics
+horizontal_resolution_px_per_m	bmp_parser.h	/^    int32 horizontal_resolution_px_per_m;$/;"	m	struct:BmpBitmapV1Header
+horizontal_resolution_px_per_m	bmp_parser.h	/^    int32 horizontal_resolution_px_per_m;$/;"	m	struct:BmpBitmapV5Header
+id_delta	opentype.h	/^    int16 id_delta;$/;"	m	struct:Format4EncodingSubtableSegment
+id_range_offset	opentype.h	/^    uint16 id_range_offset;$/;"	m	struct:Format4EncodingSubtableSegment
+ids	opentype.h	/^    uint16 * ids;$/;"	m	struct:GlyphsIds
+image_format	opentype.h	/^    uint16 image_format;$/;"	m	struct:IndexSubTableHeader
+index_format	opentype.h	/^    uint16 index_format;$/;"	m	struct:IndexSubTableHeader
+index_subtable_array_offset	opentype.h	/^    uint32 index_subtable_array_offset;$/;"	m	struct:BitmapSizeRecord
+index_tables_size	opentype.h	/^    uint32 index_tables_size;$/;"	m	struct:BitmapSizeRecord
+index_to_loc_format	opentype.h	/^    int16 index_to_loc_format;$/;"	m	struct:FontHeaderTable
+initialized	engine.cpp	/^    bool32 initialized;$/;"	m	struct:GlobalState	file:
+int16	macro_definitions.h	9;"	d
+int32	macro_definitions.h	10;"	d
+int64	macro_definitions.h	11;"	d
+int8	macro_definitions.h	8;"	d
+internal	macro_definitions.h	24;"	d
+keys_pressed	platform.h	/^    bool32 keys_pressed[KEYBOARD_KEY_SIZE];$/;"	m	struct:ControlInput
+language	opentype.h	/^    uint16 language;$/;"	m	struct:Format4EncodingSubtable
+last_enity_type	tilemap.h	/^    last_enity_type,$/;"	e	enum:EntityType
+last_glyph_index	opentype.h	/^    uint16 last_glyph_index;$/;"	m	struct:IndexSubTableArrayEntry
+last_mouse_event	platform.h	/^    MouseEvent last_mouse_event;$/;"	m	struct:ControlInput
+length	opentype.h	/^    uint16 length;$/;"	m	struct:Format4EncodingSubtable
+length	opentype.h	/^    uint32 length;$/;"	m	struct:TableRecord
+local_persist	macro_definitions.h	23;"	d
+mac_style	opentype.h	/^    uint16 mac_style;$/;"	m	struct:FontHeaderTable
+magic_number	opentype.h	/^    uint32 magic_number;$/;"	m	struct:FontHeaderTable
+major_version	opentype.h	/^    uint16 major_version;$/;"	m	struct:EBDTTableHeader
+major_version	opentype.h	/^    uint16 major_version;$/;"	m	struct:EBLCTableHeader
+major_version	opentype.h	/^    uint16 major_version;$/;"	m	struct:FontHeaderTable
+major_version	opentype.h	/^    uint16 major_version;$/;"	m	struct:TTCHeader
+man_bitmap	engine.cpp	/^    Bitmap * man_bitmap;$/;"	m	struct:GlobalState	file:
+max_before_bl	opentype.h	/^    int8 max_before_bl;$/;"	m	struct:SbitLineMetricsRecord
+min_advance_sb	opentype.h	/^    int8 min_advance_sb;$/;"	m	struct:SbitLineMetricsRecord
+min_after_bl	opentype.h	/^    int8 min_after_bl;$/;"	m	struct:SbitLineMetricsRecord
+min_origin_sb	opentype.h	/^    int8 min_origin_sb;$/;"	m	struct:SbitLineMetricsRecord
+minor_version	opentype.h	/^    uint16 minor_version;$/;"	m	struct:EBDTTableHeader
+minor_version	opentype.h	/^    uint16 minor_version;$/;"	m	struct:EBLCTableHeader
+minor_version	opentype.h	/^    uint16 minor_version;$/;"	m	struct:FontHeaderTable
+minor_version	opentype.h	/^    uint16 minor_version;$/;"	m	struct:TTCHeader
+modified	opentype.h	/^    int64 modified;$/;"	m	struct:FontHeaderTable
+mouse_selection_min_x	engine.cpp	/^    real32 mouse_selection_min_x;$/;"	m	struct:GlobalState	file:
+mouse_selection_min_y	engine.cpp	/^    real32 mouse_selection_min_y;$/;"	m	struct:GlobalState	file:
+mouse_wheel_rotation	platform.h	/^    int32 mouse_wheel_rotation;$/;"	m	struct:ControlInput
+no_entity_type	tilemap.h	/^    no_entity_type,$/;"	e	enum:EntityType
+norm	math.h	/^norm(v2 a)$/;"	f
+normalize	math.h	/^normalize(v2 * a)$/;"	f
+num_colors_in_color_table	bmp_parser.h	/^    uint32 num_colors_in_color_table;\/\/ expecting 0$/;"	m	struct:BmpBitmapV1Header
+num_colors_in_color_table	bmp_parser.h	/^    uint32 num_colors_in_color_table;\/\/ expecting 0$/;"	m	struct:BmpBitmapV5Header
+num_colors_required_for_displaying	bmp_parser.h	/^    uint32 num_colors_required_for_displaying; \/\/ expecting 0$/;"	m	struct:BmpBitmapV1Header
+num_colors_required_for_displaying	bmp_parser.h	/^    uint32 num_colors_required_for_displaying; \/\/ expecting 0$/;"	m	struct:BmpBitmapV5Header
+num_encoding_tables	opentype.h	/^    uint16 num_encoding_tables;$/;"	m	struct:CmapTableHeader
+num_entities	tilemap.h	/^    uint32 num_entities;$/;"	m	struct:TileMap
+num_fonts	opentype.h	/^    uint32 num_fonts;$/;"	m	struct:TTCHeader
+num_planes	bmp_parser.h	/^    uint16 num_planes; \/\/ always 1$/;"	m	struct:BmpBitmapV1Header
+num_planes	bmp_parser.h	/^    uint16 num_planes; \/\/ always 1$/;"	m	struct:BmpBitmapV5Header
+num_sizes	opentype.h	/^    uint32 num_sizes;$/;"	m	struct:EBLCTableHeader
+num_tables	opentype.h	/^    uint16 num_tables;$/;"	m	struct:TableDirectory
+number	opentype.h	/^    uint32 number = (uint32) (end - start + 1);$/;"	m	struct:UnicodeRange
+number_of_index_subtables	opentype.h	/^    uint32 number_of_index_subtables;$/;"	m	struct:BitmapSizeRecord
+offset	opentype.h	/^    uint32 offset;$/;"	m	struct:TableRecord
+offset_to_bits	bmp_parser.h	/^    uint32 offset_to_bits;$/;"	m	struct:BmpFileHeader
+offset_to_subtable_ebdt_data	opentype.h	/^    uint32 offset_to_subtable_ebdt_data;$/;"	m	struct:IndexSubTableHeader
+operator !=	math.h	/^operator!=(v2 a, v2 b)$/;"	f
+operator *	math.h	/^operator*(real32 a, v2 b)$/;"	f
+operator *	math.h	/^operator*(v2 b, real32 a)$/;"	f
+operator *=	math.h	/^operator*=(v2 &b, real32 a)$/;"	f
+operator +	math.h	/^operator+(v2 a, v2 b)$/;"	f
+operator +=	math.h	/^operator+=(v2 &a, v2 b)$/;"	f
+operator -	math.h	/^operator-(v2 a)$/;"	f
+operator -	math.h	/^operator-(v2 a, v2 b)$/;"	f
+operator ==	math.h	/^operator==(v2 a, v2 b)$/;"	f
+other_staff	bmp_parser.h	/^    uint8 other_staff[68];$/;"	m	struct:BmpBitmapV5Header
+output_int_to_debug	win32_main.cpp	/^output_int_to_debug(char * format_string, int32 value)$/;"	f
+output_real64_to_debug	win32_main.cpp	/^output_real64_to_debug(char * format_string, real64 value)$/;"	f
+pad1	opentype.h	/^    int8 pad1;$/;"	m	struct:SbitLineMetricsRecord
+pad2	opentype.h	/^    int8 pad2;$/;"	m	struct:SbitLineMetricsRecord
+permanent_storage	platform.h	/^    uint8 * permanent_storage;$/;"	m	struct:GameMemory
+permanent_storage_size	platform.h	/^    size_t permanent_storage_size;$/;"	m	struct:GameMemory
+platform_id	opentype.h	/^    uint16 platform_id;$/;"	m	struct:EncodingRecord
+pos	tilemap.h	/^    v2 pos;$/;"	m	struct:Entity
+ppem_x	opentype.h	/^    uint8 ppem_x;$/;"	m	struct:BitmapSizeRecord
+ppem_y	opentype.h	/^    uint8 ppem_y;$/;"	m	struct:BitmapSizeRecord
+product	math.h	/^product(v2 a, v2 b)$/;"	f
+px_in_m	platform.h	/^    real32 px_in_m;$/;"	m	struct:BitmapOutputBuffer
+range_shift	opentype.h	/^    uint16 range_shift;$/;"	m	struct:Format4EncodingSubtable
+range_shift	opentype.h	/^    uint16 range_shift;$/;"	m	struct:TableDirectory
+real32	macro_definitions.h	18;"	d
+real64	macro_definitions.h	19;"	d
+rectangle_entity_type	tilemap.h	/^    rectangle_entity_type,$/;"	e	enum:EntityType
+red_mask	bmp_parser.h	/^    uint32 red_mask;$/;"	m	struct:BmpBitmapV5Header
+right_button_click_timestamp	engine.cpp	/^    real64 right_button_click_timestamp;$/;"	m	struct:GlobalState	file:
+right_button_click_x	engine.cpp	/^    real32 right_button_click_x;$/;"	m	struct:GlobalState	file:
+right_button_click_y	engine.cpp	/^    real32 right_button_click_y;$/;"	m	struct:GlobalState	file:
+search_range	opentype.h	/^    uint16 search_range;$/;"	m	struct:Format4EncodingSubtable
+search_range	opentype.h	/^    uint16 search_range;$/;"	m	struct:TableDirectory
+seg_count_x2	opentype.h	/^    uint16 seg_count_x2;$/;"	m	struct:Format4EncodingSubtable
+sfnt_version	opentype.h	/^    uint32 sfnt_version;$/;"	m	struct:TableDirectory
+shift_to_center_of_bitmap_x_px	platform.h	/^    int32 shift_to_center_of_bitmap_x_px;$/;"	m	struct:BitmapOutputBuffer
+shift_to_center_of_bitmap_y_px	platform.h	/^    int32 shift_to_center_of_bitmap_y_px;$/;"	m	struct:BitmapOutputBuffer
+size	platform.h	/^    size_t size;$/;"	m	struct:MemoryArena
+size_of_buffer_for_compressed	bmp_parser.h	/^    uint32 size_of_buffer_for_compressed; \/\/ used for compressed formats$/;"	m	struct:BmpBitmapV1Header
+size_of_buffer_for_compressed	bmp_parser.h	/^    uint32 size_of_buffer_for_compressed; \/\/ used for compressed formats$/;"	m	struct:BmpBitmapV5Header
+smallest_readable_size_px	opentype.h	/^    uint16 smallest_readable_size_px;$/;"	m	struct:FontHeaderTable
+speed	tilemap.h	/^    real32 speed;$/;"	m	struct:Entity
+start	opentype.h	/^    uint16 start = 0x20;$/;"	m	struct:UnicodeRange
+start_code	opentype.h	/^    uint16 start_code;$/;"	m	struct:Format4EncodingSubtableSegment
+start_glyph_index	opentype.h	/^    uint16 start_glyph_index;$/;"	m	struct:BitmapSizeRecord
+start_pointer	platform.h	/^    uint8 * start_pointer;$/;"	m	struct:FileReadResult
+subtable_offset	opentype.h	/^    uint32 subtable_offset;$/;"	m	struct:EncodingRecord
+table_tag	opentype.h	/^    char table_tag[4];$/;"	m	struct:TableRecord
+tag	opentype.h	/^    char tag[4];$/;"	m	struct:TTCHeader
+target_pos	tilemap.h	/^    v2 target_pos;$/;"	m	struct:Entity
+tile_map	engine.cpp	/^    TileMap tile_map;$/;"	m	struct:GlobalState	file:
+time_delta_ms	engine.cpp	/^    real64 time_delta_ms;$/;"	m	struct:GlobalState	file:
+type	platform.h	/^    MouseEventType type;$/;"	m	struct:MouseEvent
+uint16	macro_definitions.h	14;"	d
+uint32	macro_definitions.h	15;"	d
+uint64	macro_definitions.h	16;"	d
+uint8	macro_definitions.h	13;"	d
+unicode_range	opentype.h	/^    UnicodeRange unicode_range;$/;"	m	struct:Glyphs
+unicode_range	opentype.h	/^    UnicodeRange unicode_range;$/;"	m	struct:GlyphsIds
+units_per_em	opentype.h	/^    uint16 units_per_em;$/;"	m	struct:FontHeaderTable
+v2	math.h	/^struct v2$/;"	s
+v2ui	math.h	/^struct v2ui$/;"	s
+version	opentype.h	/^    uint16 version;$/;"	m	struct:CmapTableHeader
+vert	opentype.h	/^    SbitLineMetricsRecord vert;$/;"	m	struct:BitmapSizeRecord
+vert_advance	opentype.h	/^    uint8 vert_advance;$/;"	m	struct:BigGlyphMetrics
+vert_bearing_x	opentype.h	/^    int8 vert_bearing_x;$/;"	m	struct:BigGlyphMetrics
+vert_bearing_y	opentype.h	/^    int8 vert_bearing_y;$/;"	m	struct:BigGlyphMetrics
+vertical_resolution_px_per_m	bmp_parser.h	/^    int32 vertical_resolution_px_per_m;$/;"	m	struct:BmpBitmapV1Header
+vertical_resolution_px_per_m	bmp_parser.h	/^    int32 vertical_resolution_px_per_m;$/;"	m	struct:BmpBitmapV5Header
+wWinMain	win32_main.cpp	/^INT WINAPI wWinMain(HINSTANCE hInstance, $/;"	f
+width	bitmap.h	/^    uint32 width;$/;"	m	struct:Bitmap
+width	opentype.h	/^    uint8 width;$/;"	m	struct:BigGlyphMetrics
+width	opentype.h	/^    uint8 width;$/;"	m	struct:SmallGlyphMetrics
+width	platform.h	/^    uint32 width;$/;"	m	struct:BitmapOutputBuffer
+width_max	opentype.h	/^    uint8 width_max;$/;"	m	struct:SbitLineMetricsRecord
+world_scaling_factor	engine.cpp	/^    real64 world_scaling_factor;$/;"	m	struct:GlobalState	file:
+write_time	win32_main.cpp	/^    FILETIME write_time;$/;"	m	struct:EngineDll	file:
+x	math.h	/^    real32 x;$/;"	m	struct:v2
+x	math.h	/^    uint32 x;$/;"	m	struct:v2ui
+x	platform.h	/^    int32 x;$/;"	m	struct:MouseEvent
+x_max	opentype.h	/^    int16 x_max;$/;"	m	struct:FontHeaderTable
+x_min	opentype.h	/^    int16 x_min;$/;"	m	struct:FontHeaderTable
+y	math.h	/^    real32 y;$/;"	m	struct:v2
+y	math.h	/^    uint32 y;$/;"	m	struct:v2ui
+y	platform.h	/^    int32 y;$/;"	m	struct:MouseEvent
+y_max	opentype.h	/^    int16 y_max;$/;"	m	struct:FontHeaderTable
+y_min	opentype.h	/^    int16 y_min;$/;"	m	struct:FontHeaderTable

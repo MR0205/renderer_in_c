@@ -646,11 +646,11 @@ UpdateStateAndRender(GameMemory * game_memory,
         game_memory->dynamic_storage_arena.size = dynamic_storage_arena_size;
         memory_distributed += dynamic_storage_arena_size;
 
-        FileReadResult man_bmp_file = platform_procedures->ReadFileIntoMemory("D:\\c_proj\\assets\\develop\\man\\man2.bmp");
+        FileReadResult man_bmp_file = platform_procedures->ReadFileIntoMemory("..\\assets\\develop\\man\\man2.bmp");
         g_GlobalState->man_bitmap = ReadLoadedBmp(man_bmp_file, &game_memory->dynamic_storage_arena);
         platform_procedures->FreeFileReadResultFromMemory(man_bmp_file);
 
-        FileReadResult msgothic_font_file = platform_procedures->ReadFileIntoMemory("D:\\c_proj\\assets\\msgothic.ttc");
+        FileReadResult msgothic_font_file = platform_procedures->ReadFileIntoMemory("..\\assets\\msgothic.ttc");
         g_GlobalState->glyphs = ParseFontFile(msgothic_font_file, &game_memory->dynamic_storage_arena);
         platform_procedures->FreeFileReadResultFromMemory(msgothic_font_file);
 
@@ -692,7 +692,6 @@ UpdateStateAndRender(GameMemory * game_memory,
                 
                 uint8 r = (tile_row * (256 / num_tiles.y)) % 256;
                 uint8 g = (tile_column * (256 / num_tiles.x)) % 256;
-                //uint8 b = 0;
                 uint8 b = 255;
 
                 color = ((((uint32)r) << 16) | (((uint32)g)<< 8) | b);
@@ -738,10 +737,12 @@ UpdateStateAndRender(GameMemory * game_memory,
     RenderRightButtonClick(bitmap_output_buffer);
     RenderMouseSelection(bitmap_output_buffer);
     //RenderFontPreview(bitmap_output_buffer);
+    RenderText("HELLO ILYA!", bitmap_output_buffer, 50, 20);
     RenderText("Some simple text test.", bitmap_output_buffer, 20, 20);
     RenderText("1+2-3*4=5_6 7[8,9] {10,11}", bitmap_output_buffer, 20, 40);
-    RenderText("How Are we Doing Today, Are We good?", bitmap_output_buffer, 20, 60);
     //RenderBitmap2(g_GlobalState->man_bitmap, bitmap_output_buffer, 0.0f, 0.0f);
+    //uint32 my_color = ((((uint32)255) << 16) | (((uint32)255)<< 8) | 255);
+    //DrawRectangle(bitmap_output_buffer, 1, 1, 2, 2, my_color);
 }
 
 } // extern "C"

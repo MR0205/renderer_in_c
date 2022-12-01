@@ -1,10 +1,3 @@
-/*
-TODO:
- hot reloading doesnt work.
-
-
-   */
-
 #ifndef UNICODE
 #define UNICODE
 #endif
