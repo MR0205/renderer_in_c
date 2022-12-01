@@ -4,7 +4,7 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary
 )
 
 set timestamp=%date:~0,2%_%date:~3,3%_%date:~7,2%_%time:~0,2%_%time:~3,2%_%time:~6,2%
-
+if not exist build mkdir build
 pushd build
 move engine.dll engine_to_delete_%timestamp%.dll >nul 2>nul
 move engine.pdb engine_to_delete_%timestamp%.pdb >nul 2>nul
