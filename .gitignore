@@ -1,2 +1,6 @@
 *.swp
 *.*~
+build/*
+deprecated_assets
+**/tags
+
