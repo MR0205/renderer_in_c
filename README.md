@@ -13,9 +13,9 @@ After fetching the repository and locaing to the root project directory simply l
 ```
 ## Authors
 
-[Dmitry Morozov](https://github.com/MR0205)
+[Dmitrii Morozov](https://github.com/MR0205)
 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
